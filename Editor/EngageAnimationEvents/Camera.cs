@@ -29,9 +29,9 @@ namespace Combat.EngageAnimationEvents
 
         public override string displayName => "Camera";
 
-        public override string Explanation { get; } = "Camera control - needs more investigation.";
+        public override string Explanation { get; } = "The string parameter is the name of the camera, and the int parameter is used for determining if it's a camera that's used for the player, the opponent, or both. Additionally, it determines if the camera should be inverted. More investigation is needed to determine what all this means.";
         
-        public override string Summary => $"Camera Name: {backingAnimationEvent.stringParameter}\n" +
+        public override string Summary => $"Camera Name: {backingAnimationEvent.stringParameter}, " +
                                             $"Camera Int: {backingAnimationEvent.intParameter}";
 
 
