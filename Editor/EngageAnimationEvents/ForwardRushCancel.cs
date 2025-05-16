@@ -1,0 +1,42 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Combat.EngageAnimationEvents
+{
+    public class ForwardRushCancel : ParsedEngageAnimationEvent
+    {
+        public override EventCategory category => EventCategory.Cancels;
+
+        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
+
+        public override string displayName => "Forward Rush Cancel";
+
+        public override string Explanation => "Signals when the forward rush cancel is. More investigations are needed to determine the exact purpose of this event.";
+        
+        public override string Summary => "Forward rush cancel.";
+
+
+        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
+        {
+            // Could visualize cancel point with Handles.Label or draw a cancellation indicator
+            Debug.Log($"Forward Rush Cancel at time: {backingAnimationEvent.time}");
+        }
+    }
+
+    public class ForwardRushCancelParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
+    {
+        public override MatchRule[] matchRules => new MatchRule[]
+        {
+            new FunctionNameMatchRule("突進前キャン")
+        };
+
+        public override ParsedEngageAnimationEvent ParseFrom(AnimationEvent animEvent)
+        {
+            ForwardRushCancel forwardRushCancel = new ForwardRushCancel
+            {
+                backingAnimationEvent = animEvent
+            };
+            return forwardRushCancel;
+        }
+    }
+}

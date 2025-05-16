@@ -1,0 +1,43 @@
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+
+namespace Combat.EngageAnimationEvents
+{
+    public class LookAtRate : ParsedEngageAnimationEvent
+    {
+        public override string displayName => "Look At Rate";
+
+        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
+        {
+            ExposedPropertyType.Float,
+            ExposedPropertyType.Int
+        };
+        
+        public override string Explanation { get; } = "Not yet investigated. Likely related to the look at rate of a character or object.";
+        
+        public override string Summary => $"Not yet investigated.";
+
+
+        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
+        {
+        }
+    }
+
+    public class LookAtRateParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
+    {
+        public override MatchRule[] matchRules => new MatchRule[]
+        {
+            new FunctionNameMatchRule("注目率")
+        };
+
+        public override ParsedEngageAnimationEvent ParseFrom(AnimationEvent animEvent)
+        {
+            LookAtRate lookAtRate = new LookAtRate
+            {
+                backingAnimationEvent = animEvent
+            };
+            return lookAtRate;
+        }
+    }
+}
