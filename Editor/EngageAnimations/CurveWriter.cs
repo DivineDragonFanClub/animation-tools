@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Code.Combat.Editor
+namespace DivineDragon.EngageAnimations
 {
     public class CurveWriter: MonoBehaviour
     {

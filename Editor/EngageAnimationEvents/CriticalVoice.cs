@@ -1,8 +1,9 @@
 using System.Collections.Generic;
+using Combat;
 using UnityEditor;
 using UnityEngine;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents
 {
     public class CriticalVoice : ParsedEngageAnimationEvent
     {

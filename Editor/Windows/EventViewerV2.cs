@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Combat;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
-namespace Code.Combat.Editor
+namespace DivineDragon.Windows
 {
     public class EventViewerV2 : AnimationEditorInspectorHelper
     {

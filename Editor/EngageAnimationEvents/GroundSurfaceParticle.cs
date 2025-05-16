@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents
 {
     // see Combat.CharacterSignalObserver$$GroundParticle for how it's used
     public class GroundSurfaceParticle : ParsedEngageAnimationEvent

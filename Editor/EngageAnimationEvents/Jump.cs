@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Combat;
+using DivineDragon.EngageAnimations;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents
 {
     public class Jump : ParsedEngageAnimationEvent
     {
@@ -53,7 +55,7 @@ namespace Combat.EngageAnimationEvents
             clampedValue *= 256f;
             float finalValue = float.IsInfinity(clampedValue) ? -clampedValue : clampedValue;
 
-            int newParam = Combat.Bit.Combine(backingAnimationEvent.intParameter, (int)finalValue, 0x10, 0);
+            int newParam = Bit.Combine(backingAnimationEvent.intParameter, (int)finalValue, 0x10, 0);
             var clone = backingAnimationEvent.Clone();
             clone.intParameter = newParam;
             return clone;
@@ -83,14 +85,14 @@ namespace Combat.EngageAnimationEvents
         private int GetJumpCurvePower()
         {
             int param = backingAnimationEvent.intParameter;
-            int result = Combat.Bit.Get(param, 8, 0x10);
+            int result = Bit.Get(param, 8, 0x10);
             return result;
         }
         
         private AnimationEvent SetJumpCurvePower(int value)
         {
             int param = backingAnimationEvent.intParameter;
-            int result = Combat.Bit.Combine(param, value, 8, 0x10);
+            int result = Bit.Combine(param, value, 8, 0x10);
             var clone = backingAnimationEvent.Clone();
             clone.intParameter = result;
             return clone;
@@ -112,14 +114,14 @@ namespace Combat.EngageAnimationEvents
         private CurveType GetJumpCurveType()
         {
             int param = backingAnimationEvent.intParameter;
-            int result = Combat.Bit.Get(param, 4, 24);
+            int result = Bit.Get(param, 4, 24);
             return (CurveType) result;
         }
         
         private AnimationEvent SetJumpCurveType(CurveType value)
         {
             int param = backingAnimationEvent.intParameter;
-            int result = Combat.Bit.Combine(param, (int) value, 4, 24);
+            int result = Bit.Combine(param, (int) value, 4, 24);
             var clone = backingAnimationEvent.Clone();
             clone.intParameter = result;
             return clone;

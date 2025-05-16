@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Combat
+namespace DivineDragon.EngageAnimations
 {
     public class Quantizer
     {

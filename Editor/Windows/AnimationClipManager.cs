@@ -4,11 +4,10 @@ using System.IO;
 using System.Linq;
 using Combat;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Code.Combat.Editor
+namespace DivineDragon.Windows
 {
     public class AnimationClipManager : EditorWindow
     {

@@ -2,31 +2,32 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-[FilePath("Library/AnimationClipWatcherState.asset", FilePathAttribute.Location.ProjectFolder)]
-public class AnimationClipWatcherState : ScriptableSingleton<AnimationClipWatcherState>
+namespace DivineDragon
 {
-    // Use GUIDs rather than direct references for persistence
-    [SerializeField] private List<string> watchedClipGUIDs = new List<string>();
-    
-    public void AddClipGUID(string guid)
+    [FilePath("Library/AnimationClipWatcherState.asset", FilePathAttribute.Location.ProjectFolder)]
+    public class AnimationClipWatcherState : ScriptableSingleton<AnimationClipWatcherState>
     {
-        if (!watchedClipGUIDs.Contains(guid))
+        // Use GUIDs rather than direct references for persistence
+        [SerializeField] private List<string> watchedClipGUIDs = new List<string>();
+    
+        public void AddClipGUID(string guid)
         {
-            watchedClipGUIDs.Add(guid);
+            if (!watchedClipGUIDs.Contains(guid))
+            {
+                watchedClipGUIDs.Add(guid);
+                Save(true);
+            }
+        }
+    
+        public void ClearClipGUIDs()
+        {
+            watchedClipGUIDs.Clear();
             Save(true);
         }
-    }
     
-    public void RemoveClipGUID(string guid)
-    {
-        if (watchedClipGUIDs.Remove(guid))
+        public List<string> GetWatchedClipGUIDs()
         {
-            Save(true);
+            return new List<string>(watchedClipGUIDs);
         }
-    }
-    
-    public List<string> GetWatchedClipGUIDs()
-    {
-        return new List<string>(watchedClipGUIDs);
     }
 }

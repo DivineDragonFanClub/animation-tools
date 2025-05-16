@@ -1,10 +1,11 @@
-using Code.Combat.Editor;
-using Combat.EngageAnimationEvents;
-using UnityEngine;
+using Combat;
+using DivineDragon.EngageAnimationEvents;
+using DivineDragon.Windows;
 using UnityEditor;
+using UnityEngine;
 using Camera = UnityEngine.Camera;
 
-namespace Combat
+namespace DivineDragon
 {
     [CustomEditor(typeof(AnimationEditor))]
     public class AnimationEditorInspector : Editor
@@ -61,6 +62,7 @@ namespace Combat
         {
             EditorApplication.update -= OnEditorUpdate;
         }
+        
 
         public AnimationClip getAttachedClip()
         {

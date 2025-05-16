@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using Combat;
+using DivineDragon.EngageAnimationEvents.Vec3Types;
+using DivineDragon.EngageAnimations;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents
 {
     public class Hit : ParsedEngageAnimationEvent
     {

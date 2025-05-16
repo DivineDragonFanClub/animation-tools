@@ -1,4 +1,4 @@
-namespace Combat
+namespace DivineDragon.EngageAnimations
 {
     public class Bit
     {

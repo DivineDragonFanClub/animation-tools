@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using UnityEditor;
+using Combat;
 using UnityEngine;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents
 {
     public class LookAtRate : ParsedEngageAnimationEvent
     {

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents
 {
     // probably handled by      Combat.CharacterTimespace$$<>b__30_0
     //           (Combat_CharacterTimespace_o *__this,Combat_Character_o *chr,MethodInfo *method)

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Combat;
+using DivineDragon.EngageAnimations;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents.Vec3Types
 {
     // Todo: generalize to FXZtoI 
     public abstract class QuantizedEvent: ParsedEngageAnimationEvent

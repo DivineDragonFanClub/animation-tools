@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using Combat;
+using DivineDragon.EngageAnimations;
 using UnityEditor;
 using UnityEngine;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents.Vec3Types
 {
     public class HitPosition : QuantizedEvent
     {

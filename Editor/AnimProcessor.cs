@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Combat.EngageAnimationEvents;
+using Combat;
+using DivineDragon.EngageAnimationEvents;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Combat
+namespace DivineDragon
 {
     public class AnimationEventParser
     {

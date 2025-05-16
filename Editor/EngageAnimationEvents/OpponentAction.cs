@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
-using UnityEditor;
+using Combat;
 using UnityEngine;
-using UnityEngine.UIElements;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents
 {
     public class OpponentAction : ParsedEngageAnimationEvent
     {

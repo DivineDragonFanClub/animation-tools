@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents.Vec3Types
 {
     public class HitDirection : QuantizedEvent
     {

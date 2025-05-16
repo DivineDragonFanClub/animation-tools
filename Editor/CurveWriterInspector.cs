@@ -1,7 +1,8 @@
+using DivineDragon.EngageAnimations;
 using UnityEditor;
 using UnityEngine;
 
-namespace Code.Combat.Editor
+namespace DivineDragon
 {
     [CustomEditor(typeof(CurveWriter))]
 

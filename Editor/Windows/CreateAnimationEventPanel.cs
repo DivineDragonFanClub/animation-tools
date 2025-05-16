@@ -1,11 +1,9 @@
 using System.Collections.Generic;
-using System.Linq;
-using Combat;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Code.Combat.Editor
+namespace DivineDragon.Windows
 {
     public class CreateAnimationEventPanel: AnimationEditorInspectorHelper
     {        

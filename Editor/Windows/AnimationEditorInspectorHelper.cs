@@ -1,11 +1,9 @@
-using System;
+using Combat;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Combat;
-using UnityEditor.UIElements;
 
-namespace Code.Combat.Editor
+namespace DivineDragon.Windows
 {
     public class AnimationEditorInspectorHelper: EditorWindow
     {

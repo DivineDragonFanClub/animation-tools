@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Combat.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents
 {
     // void Combat.ActionAttack$$EnterApproach(Combat_ActionAttack_o *__this,MethodInfo *method)
     // Some guesses from that - need to move close enough to attack, but not too close.
