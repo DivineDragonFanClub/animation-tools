@@ -558,7 +558,7 @@ namespace DivineDragon.Windows
             uuidLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             uuidLabel.style.color = new StyleColor(Color.white);
             // hide uuid label by default from normal users
-            // uuidLabel.style.display = DisplayStyle.None;
+            uuidLabel.style.display = DisplayStyle.None;
 
             var timeLabel = new Label();
             timeLabel.name = "time-label";
