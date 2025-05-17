@@ -604,17 +604,15 @@ private void BuildContextMenu(ContextualMenuPopulateEvent evt)
     {
         // Add copy option
         evt.menu.AppendAction("Copy Event", (a) => CopyEventToClipboard(sourceEvent));
-        
         evt.menu.AppendAction("Paste Over Event", (a) => PasteEventFromClipboard(sourceEvent), 
             (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-        
         // Add paste as new option
         evt.menu.AppendAction("Paste As New Event", (a) => PasteEventFromClipboardAsNew(sourceEvent), 
             (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-
-        
         // Add duplicate option
         evt.menu.AppendAction("Duplicate Event", (a) => DuplicateEvent(sourceEvent));
+        // Add delete option
+        evt.menu.AppendAction("Delete Event", (a) => DeleteAnimationEvent(getAttachedClip(), sourceEvent));
     }
 }
 

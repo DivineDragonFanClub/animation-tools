@@ -22,10 +22,6 @@ namespace DivineDragon.Windows
 
         public void CreateCurveUI(VisualElement myInspector)
         {
-            // Notify the user this only works for the right hand
-            var label = new HelpBox(
-                "This currently only works for right hand melee weapons.",
-                HelpBoxMessageType.Info);
             // Expose the prefetched curve bridge slot
             var prefetchedCurveBridge = new ObjectField("Prefetched Curve Bridge")
             {
@@ -40,6 +36,81 @@ namespace DivineDragon.Windows
             });
 
             myInspector.Add(prefetchedCurveBridge);
+
+            // Try to auto-assign the PrefetchedCurve_Bridge from animation events
+            bool foundBridge = false;
+            var attachedClip = getAttachedClip();
+            if (attachedClip != null)
+            {
+                var parsedEvents = DivineDragon.AnimationClipWatcher.GetParsedEvents(attachedClip);
+                foreach (var evt in parsedEvents)
+                {
+                    // Look for Generic Object event with string parameter "PC"
+                    if (evt.displayName == "Generic Object" && evt.backingAnimationEvent.stringParameter == "PC")
+                    {
+                        var obj = evt.backingAnimationEvent.objectReferenceParameter as PrefetchedCurve_Bridge;
+                        if (obj != null)
+                        {
+                            animationEditor.bridge = obj;
+                            prefetchedCurveBridge.value = obj;
+                            foundBridge = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!foundBridge)
+            {
+                var warn = new HelpBox(
+                    "No PrefetchedCurve_Bridge found in animation events. Click the button below to create one along with the needed animation event.",
+                    HelpBoxMessageType.Warning);
+                myInspector.Add(warn);
+
+                // Only show the create button if not autodetected
+                var createBridgeAndEventButton = new Button(() =>
+                {
+                    // 1. Create the asset
+                    var asset = ScriptableObject.CreateInstance<PrefetchedCurve_Bridge>();
+                    string guid = System.Guid.NewGuid().ToString("N").Substring(0, 8);
+                    string path = $"Assets/PrefetchedCurve_Bridge_{guid}.asset";
+                    path = AssetDatabase.GenerateUniqueAssetPath(path);
+                    AssetDatabase.CreateAsset(asset, path);
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
+
+                    // 2. Add the Generic Object event to the current animation clip
+                    var currentClip = getAttachedClip();
+                    if (currentClip != null)
+                    {
+                        // Create the AnimationEvent
+                        var animEvent = new AnimationEvent();
+                        animEvent.time = 0f;
+                        animEvent.functionName = "汎用Object"; // Generic Object
+                        animEvent.stringParameter = "PC";
+                        animEvent.objectReferenceParameter = asset;
+                        Undo.RegisterCompleteObjectUndo(currentClip, "Add PrefetchedCurve_Bridge Event");
+                        DivineDragon.AnimationClipWatcher.AddEventProgrammatically(currentClip, animEvent);
+                        Debug.Log($"Added Generic Object event with PrefetchedCurve_Bridge to {currentClip.name}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("No animation clip attached. Only the asset was created.");
+                    }
+
+                    // 3. Reveal the asset in the Project window
+                    EditorGUIUtility.PingObject(asset);
+                    Selection.activeObject = asset;
+
+                    // 4. Refresh the UI to reflect the new event/bridge
+                    myInspector.Clear();
+                    CreateCurveUI(myInspector);
+                })
+                {
+                    text = "Create PrefetchedCurve_Bridge Asset + Event"
+                };
+                myInspector.Add(createBridgeAndEventButton);
+            }
+
 
             // Expose the RightRoot slot
             var rightRoot = new ObjectField("Right Root")
@@ -157,6 +228,111 @@ namespace DivineDragon.Windows
                 text = "Write Positions"
             };
             myInspector.Add(writePositionButton);
+
+            // Notify the user this only works for the right hand
+            var label = new HelpBox(
+                "This currently only works for right hand melee weapons.",
+                HelpBoxMessageType.Info);
+            myInspector.Add(label);
+            
+            var createRightHandHelpersButton = new Button(() =>
+            {
+                var go = animationEditor?.gameObject;
+                if (go == null)
+                {
+                    Debug.LogError("Animation Editor GameObject is null");
+                    return;
+                }
+
+                // Recursively find the transform named r_wpn1_loc
+                Transform FindChildRecursive(Transform parent, string name)
+                {
+                    if (parent.name == name) return parent;
+                    foreach (Transform child in parent)
+                    {
+                        var result = FindChildRecursive(child, name);
+                        if (result != null) return result;
+                    }
+                    return null;
+                }
+
+                var rWpn1Loc = FindChildRecursive(go.transform, "r_wpn1_loc");
+                if (rWpn1Loc == null)
+                {
+                    Debug.LogError("Could not find 'r_wpn1_loc' transform");
+                    return;
+                }
+
+                // Create Right_Weapon_Root
+                var rootGO = new GameObject("Right_Weapon_Root");
+                Undo.RegisterCreatedObjectUndo(rootGO, "Create Right_Weapon_Root");
+                var root = rootGO.transform;
+                root.parent = rWpn1Loc;
+                root.localPosition = new Vector3(0, 0, 0.05f);
+                root.localRotation = Quaternion.Euler(0, 0, 0);
+                root.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+
+                // Create Right_Weapon_Tip
+                var tipGO = new GameObject("Right_Weapon_Tip");
+                Undo.RegisterCreatedObjectUndo(tipGO, "Create Right_Weapon_Tip");
+                var tip = tipGO.transform;
+                tip.parent = rWpn1Loc;
+                tip.localPosition = new Vector3(0, 0, 1.05f);
+                tip.localRotation = Quaternion.Euler(0, 0, 0);
+                tip.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+
+                // Register undo for animationEditor assignment
+                Undo.RecordObject(animationEditor, "Assign RightRoot and RightTip");
+                animationEditor.RightRoot = root;
+                animationEditor.RightTip = tip;
+                EditorUtility.SetDirty(animationEditor);
+
+                // Create Right_Weapon_Visualizer (Cylinder)
+                var visualizerGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                Undo.RegisterCreatedObjectUndo(visualizerGO, "Create Right_Weapon_Visualizer");
+                var visualizer = visualizerGO.transform;
+                visualizer.name = "Right_Weapon_Visualizer";
+                visualizer.parent = rWpn1Loc;
+                visualizer.localPosition = new Vector3(0, 0, 0.55f);
+                visualizer.localRotation = Quaternion.Euler(90, 0, 0); // y axis
+                visualizer.localScale = new Vector3(0.05f, 0.53f, 0.05f);
+
+                // Keep the collider, but remove the mesh renderer
+                var meshRenderer = visualizer.GetComponent<MeshRenderer>();
+                if (meshRenderer != null)
+                {
+                    Object.DestroyImmediate(meshRenderer);
+                }
+                var meshFilter = visualizer.GetComponent<MeshFilter>();
+                if (meshFilter != null)
+                {
+                    Object.DestroyImmediate(meshFilter);
+                }
+
+                // Refresh the UI fields to show the new assignments
+                rightRoot.value = root;
+                rightTip.value = tip;
+
+                Debug.Log("Created and assigned Right_Weapon_Root, Right_Weapon_Tip, and Right_Weapon_Visualizer (collider only, no mesh) under 'r_wpn1_loc'.");
+            })
+            {
+                text = "Create Right Hand Helpers"
+            };
+
+
+            myInspector.Add(createRightHandHelpersButton);
+
+
+            // Add a refresh button to re-run the bridge auto-detection logic
+            var refreshButton = new Button(() =>
+            {
+                myInspector.Clear();
+                CreateCurveUI(myInspector);
+            })
+            {
+                text = "Refresh Panel"
+            };
+            myInspector.Add(refreshButton);
         }
     }
 }
