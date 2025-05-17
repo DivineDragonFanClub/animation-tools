@@ -25,7 +25,7 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Summary => 
             $"{(GetJumpIsGrounding() ? "Grounding" : "Non-grounding")}, " +
             $"duration {GetLandingTimeAfter():F2}s, " +
-            $"using {GetJumpCurveType()} curve (power: {GetJumpCurvePower()})" +
+            $"using {GetJumpCurveType()} curve (power: {GetJumpCurvePower()}), " +
             $"landing at point {GetLandingPoint():F2}";
 
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
@@ -38,7 +38,7 @@ namespace DivineDragon.EngageAnimationEvents
                 GUIStyle style = new GUIStyle();
                 style.normal.textColor = Color.magenta;
                 style.fontSize = 20;
-                string labelText = $"Jump: {backingAnimationEvent.floatParameter}, {backingAnimationEvent.intParameter}";
+                string labelText = $"Jump";
                 Handles.Label(c_neck_jnt.position, labelText, style);
             }
         }
