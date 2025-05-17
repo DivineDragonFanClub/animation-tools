@@ -225,7 +225,8 @@ namespace DivineDragon.Windows
                 EditorUtility.SetDirty(animationEditor.bridge);
             })
             {
-                text = "Write Positions"
+                text = "Write Positions to PrefetchedCurve_Bridge",
+                tooltip = "Steps through the animation and writes the positions of RightRoot and RightTip to the PrefetchedCurve_Bridge."
             };
             myInspector.Add(writePositionButton);
 
@@ -316,7 +317,8 @@ namespace DivineDragon.Windows
                 Debug.Log("Created and assigned Right_Weapon_Root, Right_Weapon_Tip, and Right_Weapon_Visualizer (collider only, no mesh) under 'r_wpn1_loc'.");
             })
             {
-                text = "Create Right Hand Helpers"
+                text = "Create Right Hand Helpers (Warning - only an approximate position)",
+                tooltip = "Creates Right_Weapon_Root, Right_Weapon_Tip, and Right_Weapon_Visualizer (collider only, no mesh) under 'r_wpn1_loc', so that we can create the animation curve."
             };
 
 

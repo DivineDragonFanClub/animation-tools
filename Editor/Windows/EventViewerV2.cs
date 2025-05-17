@@ -407,7 +407,6 @@ namespace DivineDragon.Windows
             if (specialEditor != null)
             {
                 var specialEditorContainer = new Box();
-                specialEditorContainer.tooltip = "A purpose-built editor for this event";
                 specialEditorContainer.style.flexDirection = FlexDirection.Column;
                 specialEditorContainer.style.marginLeft = 2;
                 var specialEditorLabel = new Label("Special Editor");
@@ -433,8 +432,6 @@ namespace DivineDragon.Windows
             labelBackingParameters.style.color = new StyleColor(Color.white);
             labelBackingParameters.style.marginBottom = 5;
             containerToPutActualBackingParameters.Add(labelBackingParameters);
-            containerToPutActualBackingParameters.tooltip = specialEditor == null ? "Backing Parameters for this event." : "Backing Parameters for this event - note that these raw values may not make sense on their own. Use the special editor instead.";
-            
             
             if (selectedEventItem.exposedProperties.Contains(ParsedEngageAnimationEvent.ExposedPropertyType.FunctionName))
             {
