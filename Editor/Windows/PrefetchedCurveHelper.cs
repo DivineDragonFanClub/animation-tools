@@ -254,7 +254,7 @@ namespace DivineDragon.Windows
 
             // Add a label to inform the user to drop in a weapon
             var label2 = new HelpBox(
-                "Drop in a weapon GameObject to attach it to the character, and automatically set the Right Root and Right Tip.",
+                "Drop in a weapon GameObject, then click the button below to attach it to the character and automatically set the Right Root and Right Tip.",
                 HelpBoxMessageType.Info);
 
             myInspector.Add(label2);
