@@ -31,7 +31,7 @@ namespace DivineDragon.EngageAnimationEvents
                 GUIStyle style = new GUIStyle();
                 style.normal.textColor = Color.blue;
                 style.fontSize = 20;
-                string labelText = $"Left Foot Touches Ground ⬇";
+                string labelText = $"Left Foot Down ⬇";
                 Handles.Label(c_l_leg4_jnt.position, labelText, style);
             }
         }

@@ -29,7 +29,7 @@ namespace DivineDragon.EngageAnimationEvents
                 GUIStyle style = new GUIStyle();
                 style.normal.textColor = Color.blue;
                 style.fontSize = 20;
-                string labelText = $"Right Foot Ascending ⬆";
+                string labelText = $"Right Foot Up ⬆";
                 Handles.Label(c_r_leg4_jnt.position, labelText, style);
             }
         }
