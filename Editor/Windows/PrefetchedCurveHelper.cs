@@ -162,7 +162,10 @@ namespace DivineDragon.Windows
                     Debug.LogError("RightTip is null, cannot write positions");
                     return;
                 }
-                
+
+                // Register undo for the bridge before modifying its curves
+                Undo.RecordObject(animationEditor.bridge, "Write RightHand Positions to PrefetchedCurve_Bridge");
+
                 // Get the current animation clip
                 var currentClip = getAttachedClip();
 
@@ -232,11 +235,32 @@ namespace DivineDragon.Windows
 
             // Notify the user this only works for the right hand
             var label = new HelpBox(
-                "This currently only works for right hand melee weapons.",
+                "This currently only works for writing to the RightHand TrailTracks.",
                 HelpBoxMessageType.Info);
             myInspector.Add(label);
-            
-            var createRightHandHelpersButton = new Button(() =>
+
+            // Add a field to drop in a weapon GameObject
+            GameObject weaponObject = null;
+            var weaponField = new ObjectField("Weapon")
+            {
+                objectType = typeof(GameObject),
+                allowSceneObjects = true
+            };
+            weaponField.RegisterValueChangedCallback(evt =>
+            {
+                weaponObject = evt.newValue as GameObject;
+            });
+            myInspector.Add(weaponField);
+
+            // Add a label to inform the user to drop in a weapon
+            var label2 = new HelpBox(
+                "Drop in a weapon GameObject to attach it to the character, and automatically set the Right Root and Right Tip.",
+                HelpBoxMessageType.Info);
+
+            myInspector.Add(label2);
+
+            // Add a button to attach and set weapon
+            var attachAndSetWeaponButton = new Button(() =>
             {
                 var go = animationEditor?.gameObject;
                 if (go == null)
@@ -244,8 +268,11 @@ namespace DivineDragon.Windows
                     Debug.LogError("Animation Editor GameObject is null");
                     return;
                 }
-
-                // Recursively find the transform named r_wpn1_loc
+                if (weaponObject == null)
+                {
+                    Debug.LogError("No weapon object assigned");
+                    return;
+                }
                 Transform FindChildRecursive(Transform parent, string name)
                 {
                     if (parent.name == name) return parent;
@@ -256,75 +283,41 @@ namespace DivineDragon.Windows
                     }
                     return null;
                 }
-
                 var rWpn1Loc = FindChildRecursive(go.transform, "r_wpn1_loc");
                 if (rWpn1Loc == null)
                 {
                     Debug.LogError("Could not find 'r_wpn1_loc' transform");
                     return;
                 }
-
-                // Create Right_Weapon_Root
-                var rootGO = new GameObject("Right_Weapon_Root");
-                Undo.RegisterCreatedObjectUndo(rootGO, "Create Right_Weapon_Root");
-                var root = rootGO.transform;
-                root.parent = rWpn1Loc;
-                root.localPosition = new Vector3(0, 0, 0.05f);
-                root.localRotation = Quaternion.Euler(0, 0, 0);
-                root.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-
-                // Create Right_Weapon_Tip
-                var tipGO = new GameObject("Right_Weapon_Tip");
-                Undo.RegisterCreatedObjectUndo(tipGO, "Create Right_Weapon_Tip");
-                var tip = tipGO.transform;
-                tip.parent = rWpn1Loc;
-                tip.localPosition = new Vector3(0, 0, 1.05f);
-                tip.localRotation = Quaternion.Euler(0, 0, 0);
-                tip.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-
-                // Register undo for animationEditor assignment
+                // Attach weapon to r_wpn1_loc if not already parented
+                if (weaponObject.transform.parent != rWpn1Loc)
+                {
+                    Undo.SetTransformParent(weaponObject.transform, rWpn1Loc, "Attach Weapon to r_wpn1_loc");
+                    weaponObject.transform.localPosition = Vector3.zero;
+                    weaponObject.transform.localRotation = Quaternion.identity;
+                }
+                // Find TrailRoot and TrailTip
+                Transform trailRoot = weaponObject.transform.Find("TrailRoot");
+                Transform trailTip = weaponObject.transform.Find("TrailTip");
+                if (trailRoot == null || trailTip == null)
+                {
+                    Debug.LogError("Weapon must have children named 'TrailRoot' and 'TrailTip'");
+                    return;
+                }
                 Undo.RecordObject(animationEditor, "Assign RightRoot and RightTip");
-                animationEditor.RightRoot = root;
-                animationEditor.RightTip = tip;
+                animationEditor.RightRoot = trailRoot;
+                animationEditor.RightTip = trailTip;
                 EditorUtility.SetDirty(animationEditor);
-
-                // Create Right_Weapon_Visualizer (Cylinder)
-                var visualizerGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                Undo.RegisterCreatedObjectUndo(visualizerGO, "Create Right_Weapon_Visualizer");
-                var visualizer = visualizerGO.transform;
-                visualizer.name = "Right_Weapon_Visualizer";
-                visualizer.parent = rWpn1Loc;
-                visualizer.localPosition = new Vector3(0, 0, 0.55f);
-                visualizer.localRotation = Quaternion.Euler(90, 0, 0); // y axis
-                visualizer.localScale = new Vector3(0.05f, 0.53f, 0.05f);
-
-                // Keep the collider, but remove the mesh renderer
-                var meshRenderer = visualizer.GetComponent<MeshRenderer>();
-                if (meshRenderer != null)
-                {
-                    Object.DestroyImmediate(meshRenderer);
-                }
-                var meshFilter = visualizer.GetComponent<MeshFilter>();
-                if (meshFilter != null)
-                {
-                    Object.DestroyImmediate(meshFilter);
-                }
-
-                // Refresh the UI fields to show the new assignments
-                rightRoot.value = root;
-                rightTip.value = tip;
-
-                Debug.Log("Created and assigned Right_Weapon_Root, Right_Weapon_Tip, and Right_Weapon_Visualizer (collider only, no mesh) under 'r_wpn1_loc'.");
+                rightRoot.value = trailRoot;
+                rightTip.value = trailTip;
+                Debug.Log("Weapon attached and TrailRoot/TrailTip assigned.");
             })
             {
-                text = "Create Right Hand Helpers (Warning - only an approximate position)",
-                tooltip = "Creates Right_Weapon_Root, Right_Weapon_Tip, and Right_Weapon_Visualizer (collider only, no mesh) under 'r_wpn1_loc', so that we can create the animation curve."
+                text = "Attach Weapon and Set Right Root/Tip",
+                tooltip = "Attach the weapon to r_wpn1_loc and assign TrailRoot/TrailTip."
             };
-
-
-            myInspector.Add(createRightHandHelpersButton);
-
-
+            myInspector.Add(attachAndSetWeaponButton);
+            
             // Add a refresh button to re-run the bridge auto-detection logic
             var refreshButton = new Button(() =>
             {

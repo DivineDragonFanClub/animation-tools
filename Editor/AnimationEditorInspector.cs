@@ -243,8 +243,12 @@ namespace DivineDragon
 
             // Draw arrow at the end
             float size = HandleUtility.GetHandleSize(camLookAtLoc.position) * 0.2f;
-            Handles.ConeHandleCap(0, camLookAtLoc.position - direction * size * 0.5f,
-                Quaternion.LookRotation(direction), size, EventType.Repaint);
+            if (direction != Vector3.zero)
+            {
+                Handles.ConeHandleCap(0, camLookAtLoc.position - direction * size * 0.5f,
+                    Quaternion.LookRotation(direction), size, EventType.Repaint);
+            }
+            
             
             // grab the main camera
             Camera mainCamera = Camera.main;

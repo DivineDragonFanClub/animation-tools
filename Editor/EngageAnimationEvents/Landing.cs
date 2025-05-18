@@ -21,8 +21,7 @@ namespace DivineDragon.EngageAnimationEvents
         
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         { 
-            float landingOffset = backingAnimationEvent.floatParameter;
-            Debug.Log($"Landing with offset: {landingOffset}");
+            // Nothing
         }
     }
 
