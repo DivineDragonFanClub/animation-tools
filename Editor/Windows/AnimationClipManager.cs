@@ -45,7 +45,7 @@ namespace DivineDragon.Windows
         public static void ShowWindow()
         {
             AnimationClipManager window = GetWindow<AnimationClipManager>();
-            window.titleContent = new GUIContent("Animation Clips");
+            window.titleContent = new GUIContent("Clip Manager");
             window.Show();
         }
 
