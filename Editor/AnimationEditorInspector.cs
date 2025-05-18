@@ -129,9 +129,7 @@ namespace DivineDragon
             //  So quickly after posting this I found the cause of the focus stealing on our end after some more debugging. I ended up finding that it was some custom editor windows causing the focus steal due to some EditorWindow.GetWindow method invokes not passing false for the focus param (which is default true). After making those small changes we were no longer seeing the focus stealing issues. Although this may be unrelated to this issue, hopefully this could be the key to addressing this issue for some.
             return EditorWindow.GetWindow<AnimationWindow>(false, null, false);
         }
-
-        private bool isFirstUpdate = true;
-
+        
         private void OnEditorUpdate()
         {   
             var _editor = GetAnimationWindow();

@@ -14,7 +14,7 @@ namespace DivineDragon.Windows
             wnd.titleContent = new GUIContent("Event Palette");
         }
 
-        public void CreateGUI()
+        public new void CreateGUI()
         {
             // Each editor window contains a root VisualElement object
             root = rootVisualElement;

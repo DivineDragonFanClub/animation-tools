@@ -29,8 +29,6 @@ namespace DivineDragon.Windows
         private string libraryPath;
         private string searchQuery = "";
         private ClipData selectedClip;
-        private Animation selectedAnimation;
-        private bool showFavoritesOnly = false;
 
         // UI Elements
         private VisualElement root;
@@ -40,7 +38,6 @@ namespace DivineDragon.Windows
         private TextField searchField;
         private VisualElement detailsPanel;
         private Button applyButton;
-        private Button favoriteButton;
         private Button selectAnimationClipButton;
 
 
@@ -74,7 +71,7 @@ namespace DivineDragon.Windows
             {
                 text = "Drag and drop animation clips here to add them to the library.\n" +
                        "Select a clip to view its details and apply it to Animation Editor."
-            };;
+            };
             explanationLabel.style.marginBottom = 10;
             explanationLabel.style.fontSize = 12;
             explanationLabel.style.color = new Color(1, 1, 1, 0.7f);
@@ -226,7 +223,6 @@ namespace DivineDragon.Windows
             }) { text = "Select Clip" };
             
             actionButtonPanel.Add(applyButton);
-            actionButtonPanel.Add(favoriteButton);
             actionButtonPanel.Add(selectAnimationClipButton);
             actionButtonPanel.Add(deleteButton);
             detailsPanel.Add(actionButtonPanel);
@@ -550,7 +546,7 @@ namespace DivineDragon.Windows
                 return false;
 
             // Check if this clip is already applied
-            AnimationClip[] clips = AnimationUtility.GetAnimationClips(anim);
+            AnimationClip[] clips = AnimationUtility.GetAnimationClips(selectedGameObject);
             return clips != null && clips.Contains(clip);
         }
 
