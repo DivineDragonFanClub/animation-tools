@@ -59,6 +59,13 @@ namespace DivineDragon.Windows
         private bool showDifferentialTimestamp = false;
         private bool developerMode = false;
 
+        private void UpdateButtonToggleState(Button button, bool isActive, string textPrefix)
+        {
+            button.text = isActive ? $"{textPrefix}: ON" : $"{textPrefix}: OFF";
+            // Optional: Change color to more clearly indicate state
+            button.style.backgroundColor = isActive ? new StyleColor(new Color(0.4f, 0.6f, 0.4f, 0.5f)) : new StyleColor(StyleKeyword.Initial);
+        }
+
         private void LoadPreferences()
         {
             scrollInTandem = EditorPrefs.GetBool(ScrollInTandemKey, false);
@@ -199,63 +206,61 @@ namespace DivineDragon.Windows
             topControls.style.flexDirection = FlexDirection.Row;
             topControls.style.marginBottom = 5;
 
-            var scrollInTandemCheckbox = new Toggle("Synced Scroll")
+            // Click to Scrub to Event Button
+            var scrubToEventButton = new Button();
+            scrubToEventButton.tooltip = "Clicking on an event will scrub the timeline to that event";
+            UpdateButtonToggleState(scrubToEventButton, scrubToEvent, "Click to Scrub");
+            scrubToEventButton.clicked += () =>
             {
-                tooltip = "Scroll the event list when scrubbing the timeline in the animation window",
-                value = scrollInTandem // Use the loaded value
-            };
-
-            scrollInTandemCheckbox.RegisterValueChangedCallback(evt => 
-            { 
-                scrollInTandem = evt.newValue; 
-                SavePreferences(); // Save when value changes
-            });
-
-            var clickToScrubToEventCheckbox = new Toggle("Click to Scrub to Event")
-            {
-                tooltip = "Clicking on an event will scrub the timeline to that event",
-                value = scrubToEvent // Use the loaded value
-            };
-            clickToScrubToEventCheckbox.RegisterValueChangedCallback(evt => 
-            { 
-                scrubToEvent = evt.newValue; 
-                SavePreferences(); // Save when value changes
-            });
-
-            topControls.Add(scrollInTandemCheckbox);
-            topControls.Add(clickToScrubToEventCheckbox);
-
-            var showDifferentialTimestampCheckbox = new Toggle("Show Differential Timestamp")
-            {
-                tooltip = "Show the time difference between the event and the current playhead time in the list",
-                value = showDifferentialTimestamp
-            };
-            showDifferentialTimestampCheckbox.RegisterValueChangedCallback(evt =>
-            {
-                showDifferentialTimestamp = evt.newValue;
+                scrubToEvent = !scrubToEvent;
                 SavePreferences();
+                UpdateButtonToggleState(scrubToEventButton, scrubToEvent, "Click to Scrub");
+            };
+            topControls.Add(scrubToEventButton);
+
+                        // Synced Scroll Button
+            var scrollInTandemButton = new Button();
+            scrollInTandemButton.tooltip = "Scroll the event list when scrubbing the timeline in the animation window";
+            UpdateButtonToggleState(scrollInTandemButton, scrollInTandem, "Synced Scroll");
+            scrollInTandemButton.clicked += () =>
+            {
+                scrollInTandem = !scrollInTandem;
+                SavePreferences();
+                UpdateButtonToggleState(scrollInTandemButton, scrollInTandem, "Synced Scroll");
+            };
+            topControls.Add(scrollInTandemButton);
+
+            // Show Differential Timestamp Button
+            var showDifferentialTimestampButton = new Button();
+            showDifferentialTimestampButton.tooltip = "Show the time difference between the event and the current playhead time in the list";
+            UpdateButtonToggleState(showDifferentialTimestampButton, showDifferentialTimestamp, "Diff. Timestamp");
+            showDifferentialTimestampButton.clicked += () =>
+            {
+                showDifferentialTimestamp = !showDifferentialTimestamp;
+                SavePreferences();
+                UpdateButtonToggleState(showDifferentialTimestampButton, showDifferentialTimestamp, "Diff. Timestamp");
                 if (listView != null)
                 {
                     listView.Refresh();
                 }
-            });
-            topControls.Add(showDifferentialTimestampCheckbox);
-
-            var developerModeCheckbox = new Toggle("Developer Mode")
-            {
-                tooltip = "Show additional debug information for developers",
-                value = developerMode
             };
-            developerModeCheckbox.RegisterValueChangedCallback(evt =>
+            topControls.Add(showDifferentialTimestampButton);
+
+            // Developer Mode Button
+            var developerModeButton = new Button();
+            developerModeButton.tooltip = "Show additional debug information for developers";
+            UpdateButtonToggleState(developerModeButton, developerMode, "Dev Mode");
+            developerModeButton.clicked += () =>
             {
-                developerMode = evt.newValue;
+                developerMode = !developerMode;
                 SavePreferences();
+                UpdateButtonToggleState(developerModeButton, developerMode, "Dev Mode");
                 if (listView != null)
                 {
                     listView.Refresh();
                 }
-            });
-            topControls.Add(developerModeCheckbox);
+            };
+            topControls.Add(developerModeButton);
 
             // Get events and filter by display name
             var events = AnimationClipWatcher.GetParsedEvents(currentClip);
