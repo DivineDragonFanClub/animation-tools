@@ -26,10 +26,14 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Explanation { get; } = "The enemy is getting hit here. Check the game's files for usage examples.";
         
         // Write a short summary of the event
-        public override string Summary => $"{(GetIsDummy() ? "Dummy " : "")}" + 
-                                          $"{GetSlashType()} attack with hitstop {GetHitstopScale()}, " +
-                                          $"hand type {GetHitHandType()}, " +
-                                          $"direction {GetSlashDirection().normalized:F2}";
+        public override string Summary
+        {
+            get
+            {
+                Vector3 dir = GetSlashDirection().normalized;
+                return $"{(GetIsDummy() ? "Dummy " : "")}{GetSlashType()} attack with hitstop {GetHitstopScale()}, hand type {GetHitHandType()}, direction (x: {dir.x:F2}, y: {dir.y:F2}, z: {dir.z:F2})";
+            }
+        }
 
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {

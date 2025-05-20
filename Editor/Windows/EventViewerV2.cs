@@ -45,12 +45,12 @@ namespace DivineDragon.Windows
             // scroll to the closest event
             if (closestIndex != -1)
             {
-                Debug.Log("scrolling to event at index: " + closestIndex);
                 listView.ScrollToItem(closestIndex);
             }
         }
 
         private bool scrollInTandem = false;
+        private bool scrubToEvent = true;
 
 
         protected override void OnUnderlyingAnimationClipChanged()
@@ -169,19 +169,23 @@ namespace DivineDragon.Windows
             topControls.style.flexDirection = FlexDirection.Row;
             topControls.style.marginBottom = 5;
 
-            var scrollToEventButton = new Button(scrollToEventCurrentTime)
+            var scrollInTandemCheckbox = new Toggle("Synced Scroll")
             {
-                text = "Scroll to Nearest Event"
-            };
-
-            var scrollInTandemCheckbox = new Toggle("Scroll in Tandem")
-            {
+                tooltip = "Scroll the event list when scrubbing the timeline in the animation window",
                 value = scrollInTandem
             };
+
             scrollInTandemCheckbox.RegisterValueChangedCallback(evt => { scrollInTandem = evt.newValue; });
 
-            topControls.Add(scrollToEventButton);
+            var clickToScrubToEventCheckbox = new Toggle("Click to Scrub to Event")
+            {
+                tooltip = "Clicking on an event will scrub the timeline to that event",
+                value = true
+            };
+            clickToScrubToEventCheckbox.RegisterValueChangedCallback(evt => { scrubToEvent = evt.newValue; });
+
             topControls.Add(scrollInTandemCheckbox);
+            topControls.Add(clickToScrubToEventCheckbox);
 
             // Get events and filter by display name
             var events = AnimationClipWatcher.GetParsedEvents(currentClip);
@@ -201,7 +205,16 @@ namespace DivineDragon.Windows
                 foreach (var obj in objects)
                 {
                     if (obj is ParsedEngageAnimationEvent evt)
+                    {
                         selectedEvents.Add(evt.Uuid);
+                        if (scrubToEvent)
+                        {
+                            // Also move the playhead to the event time
+                            editor.time = evt.backingAnimationEvent.time;
+                            // force refresh the animation window
+                            editor.Repaint();
+                        }
+                    }
                 }
 
                 UpdateOperationsPanel(operationsPanel, selectedEvents, currentClip, editor);
@@ -233,9 +246,9 @@ namespace DivineDragon.Windows
 
             twoPlaneSplitView.Add(listView);
             twoPlaneSplitView.Add(operationsPanel);
-            
+
             rootContainer.Add(twoPlaneSplitView);
-            
+
             myInspector.Add(rootContainer);
         }
 
@@ -249,12 +262,12 @@ namespace DivineDragon.Windows
             panel.Clear();
 
             bool hasSelection = selectedEvents.Count > 0;
-            
+
             var events = AnimationClipWatcher.GetParsedEvents(currentClip);
             var selectedEventItem = selectedEvents
                 .Select(uuid => events
                     .FirstOrDefault(item => item.Uuid == uuid)).FirstOrDefault();
-            
+
             if (selectedEventItem == null)
             {
                 panel.Add(new HelpBox("No event selected", HelpBoxMessageType.None));
@@ -262,13 +275,13 @@ namespace DivineDragon.Windows
             }
             var panelTitleContainer = new VisualElement();
             panelTitleContainer.style.flexDirection = FlexDirection.Row;
-            
+
             // label name of event for confirmation
             var label = new Label();
             label.text = hasSelection
                 ? $"{selectedEventItem.displayName} ({selectedEventItem.originalName})"
                 : "No Event Selected";
-            
+
             label.style.unityFontStyleAndWeight = FontStyle.Bold;
             label.style.color = new StyleColor(Color.white);
             label.style.fontSize = 20;
@@ -276,22 +289,33 @@ namespace DivineDragon.Windows
             label.style.paddingLeft = 5;
             label.style.paddingRight = 5;
             panelTitleContainer.Add(label);
-            
+            // offer a right click menu to copy the event name
+            panelTitleContainer.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                evt.menu.AppendAction("Copy Event Name", (a) =>
+                {
+                    EditorGUIUtility.systemCopyBuffer = $"{selectedEventItem.displayName} ({selectedEventItem.originalName})";
+                });
+            }));
+
             // timestamp of event
-            var timeLabel = new Label();
-            timeLabel.text = hasSelection
-                ? $"at {selectedEventItem?.backingAnimationEvent.time:F3}s"
-                : "";
-            timeLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            timeLabel.style.color = new StyleColor(Color.white);
-            panelTitleContainer.Add(timeLabel);
-            
+            // var timeLabel = new Label();
+            // timeLabel.text = hasSelection
+            //     ? $"at {selectedEventItem?.backingAnimationEvent.time:F3}s"
+            //     : "";
+            // timeLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            // timeLabel.style.color = new StyleColor(Color.white);
+            // panelTitleContainer.Add(timeLabel);
+
             panel.Add(panelTitleContainer);
-            
-            
+
+            var timeField = new FloatField() { isDelayed = true, tooltip = "Time of the event" };
+            BindTimeField(timeField, selectedEventItem);
+            panelTitleContainer.Add(timeField);
+
             // upper bar for quick controls
             var quickControls = new VisualElement();
-            
+
             quickControls.style.flexDirection = FlexDirection.Row;
 
             // Jump to event button
@@ -299,13 +323,21 @@ namespace DivineDragon.Windows
             {
                 if (selectedEvents.Count > 0)
                 {
+                    // force the animation window to pop open
+                    Type animationWindowType = Type.GetType("UnityEditor.AnimationWindow,UnityEditor");
+                    if (animationWindowType != null)
+                    {
+                        FocusWindowIfItsOpen(animationWindowType);
+                    }
+
                     editor.time = selectedEventItem.backingAnimationEvent.time;
+                    editor.Repaint();
                 }
             })
             {
-                text = "Jump to Event",
+                text = "Scrub to Event",
                 tooltip = hasSelection
-                    ? $"Jump to event at {selectedEventItem.backingAnimationEvent.time:F3}"
+                    ? $"Scrub to this event in the animation window"
                     : "Select an event first"
             };
             jumpToEventButton.SetEnabled(hasSelection);
@@ -319,8 +351,8 @@ namespace DivineDragon.Windows
                 AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, selectedEventItem, clone);
             })
             {
-                text = "Move to Playhead",
-                tooltip = hasSelection ? "Move selected events to current time" : "Select an event first"
+                text = "Move Event to Playhead",
+                tooltip = hasSelection ? "Move selected event to where the playhead is in the animation window" : "Select an event first"
             };
             moveEventButton.SetEnabled(hasSelection);
 
@@ -352,17 +384,6 @@ namespace DivineDragon.Windows
                 tooltip = hasSelection ? "Nudge selected event forward by one frame" : "Select an event first"
             };
             nudgeForwardButton.SetEnabled(hasSelection);
-            
-            // Copy button
-            var copyButton = new Button(() =>
-            {
-                CopyEventToClipboard(selectedEventItem);
-            })
-            {
-                text = "Copy",
-                tooltip = hasSelection ? "Copy selected event as JSON object" : "Select an event first"
-            };
-            
 
             // Delete button
             var deleteButton = new Button(() => { DeleteAnimationEvent(currentClip, selectedEventItem); })
@@ -370,7 +391,7 @@ namespace DivineDragon.Windows
                 text = "Delete",
                 tooltip = hasSelection ? "Delete selected event" : "Select an event first"
             };
-            
+
             deleteButton.style.backgroundColor = new StyleColor(new Color(0.7f, 0.3f, 0.3f));
             deleteButton.SetEnabled(hasSelection);
 
@@ -379,9 +400,8 @@ namespace DivineDragon.Windows
             quickControls.Add(moveEventButton);
             quickControls.Add(nudgeBackButton);
             quickControls.Add(nudgeForwardButton);
-            quickControls.Add(copyButton);
             quickControls.Add(deleteButton);
-            
+
             panel.Add(quickControls);
 
             // Add spacing between buttons
@@ -390,14 +410,14 @@ namespace DivineDragon.Windows
                 child.style.marginLeft = 2;
                 child.style.marginRight = 2;
             }
-            
+
             // justification left
             quickControls.style.justifyContent = Justify.FlexStart;
             quickControls.style.marginLeft = 2;
-            
+
             var parameterEditors = new Box();
             parameterEditors.style.flexDirection = FlexDirection.Row;
-            
+
             var specialEditor = selectedEventItem.MakeSpecialEditor((parsedEvent, animEvent) =>
             {
                 Undo.RegisterCompleteObjectUndo(currentClip, $"Saving ${parsedEvent.displayName} Event");
@@ -421,18 +441,18 @@ namespace DivineDragon.Windows
                 parameterEditors.Add(specialEditorContainer);
             }
 
-            
+
             // Add backing parameters
             var containerToPutActualBackingParameters = new VisualElement();
             // grow
             containerToPutActualBackingParameters.style.flexGrow = 1;
-            
+
             var labelBackingParameters = new Label("Backing Parameters");
             labelBackingParameters.style.unityFontStyleAndWeight = FontStyle.Bold;
             labelBackingParameters.style.color = new StyleColor(Color.white);
             labelBackingParameters.style.marginBottom = 5;
             containerToPutActualBackingParameters.Add(labelBackingParameters);
-            
+
             if (selectedEventItem.exposedProperties.Contains(ParsedEngageAnimationEvent.ExposedPropertyType.FunctionName))
             {
                 var functionNameParam = new TextField("Function Name")
@@ -442,7 +462,7 @@ namespace DivineDragon.Windows
                 BindFunctionNameField(functionNameParam, selectedEventItem);
                 containerToPutActualBackingParameters.Add(functionNameParam);
             }
-            
+
             if (selectedEventItem.exposedProperties.Contains(ParsedEngageAnimationEvent.ExposedPropertyType.String))
             {
                 var stringParam = new TextField("String")
@@ -482,40 +502,40 @@ namespace DivineDragon.Windows
                 BindObjectField(objectField, selectedEventItem);
                 containerToPutActualBackingParameters.Add(objectField);
             }
-            
+
             if (selectedEventItem.exposedProperties.Count == 0)
             {
                 var labelNoBackingParameters = new Label("This event has no backing parameters - just its existence is sufficient.");
                 labelNoBackingParameters.style.color = new StyleColor(Color.white);
                 containerToPutActualBackingParameters.Add(labelNoBackingParameters);
             }
-            
+
             // Add backing parameters to panel
             parameterEditors.Add(containerToPutActualBackingParameters);
             containerToPutActualBackingParameters.style.flexDirection = FlexDirection.Column;
-            
+
             // margin for parameter editors
             parameterEditors.style.marginLeft = 2;
             parameterEditors.style.marginRight = 2;
             parameterEditors.style.marginTop = 5;
             parameterEditors.style.marginBottom = 5;
-            
+
             panel.Add(parameterEditors);
             // border for parameter editors
-            
-            
+
+
             // space between parameter editors
             foreach (var child in parameterEditors.Children())
             {
                 child.style.marginLeft = 5;
                 child.style.marginRight = 5;
             }
-            
+
             var helpBox = new HelpBox(selectedEventItem.Explanation, HelpBoxMessageType.Info);
             panel.Add(helpBox);
-            
+
             // create a piece of user selectable text
-            
+
         }
 
         private VisualElement MakeEventItem()
@@ -548,6 +568,8 @@ namespace DivineDragon.Windows
             var backingNameLabel = new Label();
             backingNameLabel.name = "backing-name-label";
             backingNameLabel.style.unityFont = EditorStyles.miniFont;
+            // hide this label by default from normal users
+            backingNameLabel.style.display = DisplayStyle.None;
 
             var uuidLabel = new Label();
             uuidLabel.name = "uuid-label";
@@ -571,7 +593,7 @@ namespace DivineDragon.Windows
             headerContainer.Add(uuidLabel);
 
             itemContainer.Add(headerContainer);
-            
+
             var summaryContainer = new Label();
             summaryContainer.name = "summary-container";
             summaryContainer.style.unityFont = EditorStyles.miniFont;
@@ -582,184 +604,184 @@ namespace DivineDragon.Windows
 
             return itemContainer;
         }
-        
-        
-private void BuildContextMenu(ContextualMenuPopulateEvent evt)
-{
-    // Get the event data from the target element
-    var element = evt.target as VisualElement;
-    if (element == null) return;
-    
-    // Find the event in the list by traversing up the visual hierarchy if needed
-    var container = element;
-    while (container != null && container.userData == null)
-    {
-        container = container.parent;
-    }
-    
-    if (container?.userData is ParsedEngageAnimationEvent sourceEvent)
-    {
-        // Add copy option
-        evt.menu.AppendAction("Copy Event", (a) => CopyEventToClipboard(sourceEvent));
-        evt.menu.AppendAction("Paste Over Event", (a) => PasteEventFromClipboard(sourceEvent), 
-            (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-        // Add paste as new option
-        evt.menu.AppendAction("Paste As New Event", (a) => PasteEventFromClipboardAsNew(sourceEvent), 
-            (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-        // Add duplicate option
-        evt.menu.AppendAction("Duplicate Event", (a) => DuplicateEvent(sourceEvent));
-        // Add delete option
-        evt.menu.AppendAction("Delete Event", (a) => DeleteAnimationEvent(getAttachedClip(), sourceEvent));
-    }
-}
-
-private void CopyEventToClipboard(ParsedEngageAnimationEvent evt)
-{
-    // Serialize event data to JSON or another format
-    var data = AnimationEventToJson(evt.backingAnimationEvent);
-    EditorGUIUtility.systemCopyBuffer = data;
-    Debug.Log($"Copied event: {evt.displayName}");
-}
-
-private string AnimationEventToJson(AnimationEvent animationEvent)
-{
-    if (animationEvent == null)
-        return "{}";
-    
-    var serializable = SerializableAnimationEvent.FromAnimationEvent(animationEvent);
-    return JsonUtility.ToJson(serializable, true);
-}
 
 
-[Serializable]
-private class SerializableAnimationEvent
-{
-    public float time;
-    public string functionName;
-    public float floatParameter;
-    public int intParameter;
-    public string stringParameter;
-    public string objectReferencePath;
-    public string objectReferenceType;
-    
-    public static SerializableAnimationEvent FromAnimationEvent(AnimationEvent evt)
-    {
-        var result = new SerializableAnimationEvent
+        private void BuildContextMenu(ContextualMenuPopulateEvent evt)
         {
-            time = evt.time,
-            functionName = evt.functionName,
-            floatParameter = evt.floatParameter,
-            intParameter = evt.intParameter,
-            stringParameter = evt.stringParameter
-        };
-        
-        if (evt.objectReferenceParameter != null)
-        {
-            result.objectReferencePath = AssetDatabase.GetAssetPath(evt.objectReferenceParameter);
-            result.objectReferenceType = evt.objectReferenceParameter.GetType().AssemblyQualifiedName;
+            // Get the event data from the target element
+            var element = evt.target as VisualElement;
+            if (element == null) return;
+
+            // Find the event in the list by traversing up the visual hierarchy if needed
+            var container = element;
+            while (container != null && container.userData == null)
+            {
+                container = container.parent;
+            }
+
+            if (container?.userData is ParsedEngageAnimationEvent sourceEvent)
+            {
+                // Add copy option
+                evt.menu.AppendAction("Copy Event", (a) => CopyEventToClipboard(sourceEvent));
+                evt.menu.AppendAction("Paste Over Event", (a) => PasteEventFromClipboard(sourceEvent),
+                    (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                // Add paste as new option
+                evt.menu.AppendAction("Paste As New Event", (a) => PasteEventFromClipboardAsNew(sourceEvent),
+                    (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                // Add duplicate option
+                evt.menu.AppendAction("Duplicate Event", (a) => DuplicateEvent(sourceEvent));
+                // Add delete option
+                evt.menu.AppendAction("Delete Event", (a) => DeleteAnimationEvent(getAttachedClip(), sourceEvent));
+            }
         }
-        
-        return result;
-    }
-    
-    public AnimationEvent ToAnimationEvent()
-    {
-        var evt = new AnimationEvent
+
+        private void CopyEventToClipboard(ParsedEngageAnimationEvent evt)
         {
-            time = this.time,
-            functionName = this.functionName,
-            floatParameter = this.floatParameter,
-            intParameter = this.intParameter,
-            stringParameter = this.stringParameter
-        };
-        
-        if (!string.IsNullOrEmpty(objectReferencePath))
-        {
-            evt.objectReferenceParameter = AssetDatabase.LoadAssetAtPath(
-                objectReferencePath, 
-                Type.GetType(objectReferenceType));
+            // Serialize event data to JSON or another format
+            var data = AnimationEventToJson(evt.backingAnimationEvent);
+            EditorGUIUtility.systemCopyBuffer = data;
+            Debug.Log($"Copied event: {evt.displayName}");
         }
-        
-        return evt;
-    }
-}
 
-private bool CanPasteEvent()
-{
-    // Validate if clipboard has valid event data
-    try
-    {
-        var clipData = EditorGUIUtility.systemCopyBuffer;
-        return !string.IsNullOrEmpty(clipData) && clipData.Contains("functionName");
-    }
-    catch
-    {
-        return false;
-    }
-}
-
-private void PasteEventFromClipboard(ParsedEngageAnimationEvent targetEvent)
-{
-    try
-    {
-        var clipData = EditorGUIUtility.systemCopyBuffer;
-        var serializedEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
-        var sourceEvent = serializedEvent.ToAnimationEvent();
-        
-        if (sourceEvent != null)
+        private string AnimationEventToJson(AnimationEvent animationEvent)
         {
-            // Create a clone to preserve the time of the target event
-            var clone = sourceEvent.Clone();
-            clone.time = targetEvent.backingAnimationEvent.time;
-            
-            // Update the event
-            Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Paste Event Data");
-            AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), targetEvent, clone);
-            Debug.Log("Pasted event data successfully");
+            if (animationEvent == null)
+                return "{}";
+
+            var serializable = SerializableAnimationEvent.FromAnimationEvent(animationEvent);
+            return JsonUtility.ToJson(serializable, true);
         }
-    }
-    catch (Exception ex)
-    {
-        Debug.LogError($"Failed to paste event data: {ex.Message}");
-    }
-}
 
-// paste it at the same time as the target event, but don't overwrite it
-private void PasteEventFromClipboardAsNew(ParsedEngageAnimationEvent targetEvent)
-{
-    try
-    {
-        var clipData = EditorGUIUtility.systemCopyBuffer;
-        var serializedEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
-        var sourceEvent = serializedEvent.ToAnimationEvent();
 
-        if (sourceEvent != null)
+        [Serializable]
+        private class SerializableAnimationEvent
         {
-            // Create a clone to preserve the time of the target event
-            var clone = sourceEvent.Clone();
-            clone.time = targetEvent.backingAnimationEvent.time;
+            public float time;
+            public string functionName;
+            public float floatParameter;
+            public int intParameter;
+            public string stringParameter;
+            public string objectReferencePath;
+            public string objectReferenceType;
 
-            // Add the new event as a duplicate
-            Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Paste Event Data as New");
+            public static SerializableAnimationEvent FromAnimationEvent(AnimationEvent evt)
+            {
+                var result = new SerializableAnimationEvent
+                {
+                    time = evt.time,
+                    functionName = evt.functionName,
+                    floatParameter = evt.floatParameter,
+                    intParameter = evt.intParameter,
+                    stringParameter = evt.stringParameter
+                };
+
+                if (evt.objectReferenceParameter != null)
+                {
+                    result.objectReferencePath = AssetDatabase.GetAssetPath(evt.objectReferenceParameter);
+                    result.objectReferenceType = evt.objectReferenceParameter.GetType().AssemblyQualifiedName;
+                }
+
+                return result;
+            }
+
+            public AnimationEvent ToAnimationEvent()
+            {
+                var evt = new AnimationEvent
+                {
+                    time = this.time,
+                    functionName = this.functionName,
+                    floatParameter = this.floatParameter,
+                    intParameter = this.intParameter,
+                    stringParameter = this.stringParameter
+                };
+
+                if (!string.IsNullOrEmpty(objectReferencePath))
+                {
+                    evt.objectReferenceParameter = AssetDatabase.LoadAssetAtPath(
+                        objectReferencePath,
+                        Type.GetType(objectReferenceType));
+                }
+
+                return evt;
+            }
+        }
+
+        private bool CanPasteEvent()
+        {
+            // Validate if clipboard has valid event data
+            try
+            {
+                var clipData = EditorGUIUtility.systemCopyBuffer;
+                return !string.IsNullOrEmpty(clipData) && clipData.Contains("functionName");
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void PasteEventFromClipboard(ParsedEngageAnimationEvent targetEvent)
+        {
+            try
+            {
+                var clipData = EditorGUIUtility.systemCopyBuffer;
+                var serializedEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
+                var sourceEvent = serializedEvent.ToAnimationEvent();
+
+                if (sourceEvent != null)
+                {
+                    // Create a clone to preserve the time of the target event
+                    var clone = sourceEvent.Clone();
+                    clone.time = targetEvent.backingAnimationEvent.time;
+
+                    // Update the event
+                    Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Paste Event Data");
+                    AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), targetEvent, clone);
+                    Debug.Log("Pasted event data successfully");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to paste event data: {ex.Message}");
+            }
+        }
+
+        // paste it at the same time as the target event, but don't overwrite it
+        private void PasteEventFromClipboardAsNew(ParsedEngageAnimationEvent targetEvent)
+        {
+            try
+            {
+                var clipData = EditorGUIUtility.systemCopyBuffer;
+                var serializedEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
+                var sourceEvent = serializedEvent.ToAnimationEvent();
+
+                if (sourceEvent != null)
+                {
+                    // Create a clone to preserve the time of the target event
+                    var clone = sourceEvent.Clone();
+                    clone.time = targetEvent.backingAnimationEvent.time;
+
+                    // Add the new event as a duplicate
+                    Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Paste Event Data as New");
+                    AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone);
+                    Debug.Log("Pasted event data successfully as new event");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to paste event data: {ex.Message}");
+            }
+        }
+
+        private void DuplicateEvent(ParsedEngageAnimationEvent sourceEvent)
+        {
+            // Clone the event and offset time slightly
+            var clone = sourceEvent.backingAnimationEvent.Clone();
+            clone.time += 1f / 60f; // Offset by one frame
+
+            Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Duplicate Event");
             AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone);
-            Debug.Log("Pasted event data successfully as new event");
         }
-    }
-    catch (Exception ex)
-    {
-        Debug.LogError($"Failed to paste event data: {ex.Message}");
-    }
-}
-
-private void DuplicateEvent(ParsedEngageAnimationEvent sourceEvent)
-{
-    // Clone the event and offset time slightly
-    var clone = sourceEvent.backingAnimationEvent.Clone();
-    clone.time += 1f/60f; // Offset by one frame
-    
-    Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Duplicate Event");
-    AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone);
-}
 
         private void BindEventItem(VisualElement element, int index)
         {
@@ -769,14 +791,14 @@ private void DuplicateEvent(ParsedEngageAnimationEvent sourceEvent)
 
             // Get filtered events
             var events = AnimationClipWatcher.GetParsedEvents(currentClip);
-            
+
             // filter not yet implemented.
             var filteredEvents = events;
 
             if (index >= filteredEvents.Count) return;
 
             var item = filteredEvents[index];
-            
+
             element.userData = item;
 
             // Bind data to UI elements
@@ -817,7 +839,7 @@ private void DuplicateEvent(ParsedEngageAnimationEvent sourceEvent)
 
             // left padding + left border always 5
             element.style.paddingLeft = 7 - width;
-            
+
             // summary
             var summaryContainer = element.Q<Label>("summary-container");
             summaryContainer.text = item.Summary;
@@ -825,6 +847,14 @@ private void DuplicateEvent(ParsedEngageAnimationEvent sourceEvent)
 
         private void DeleteAnimationEvent(AnimationClip currentClip, ParsedEngageAnimationEvent item)
         {
+            if (!EditorUtility.DisplayDialog(
+                "Delete Animation Event",
+                $"Are you sure you want to delete the event '{item.displayName}' at {item.backingAnimationEvent.time:F3}s?",
+                "Delete",
+                "Cancel"))
+            {
+                return;
+            }
             Undo.RegisterCompleteObjectUndo(currentClip, $"Deleting ${item.displayName} Event");
             AnimationClipWatcher.DeleteEventProgrammatically(currentClip, item);
         }
@@ -841,7 +871,7 @@ private void DuplicateEvent(ParsedEngageAnimationEvent sourceEvent)
                 AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
         }
-        
+
         private void BindFunctionNameField(TextField stringField, ParsedEngageAnimationEvent parsedEvent)
         {
             stringField.value = parsedEvent.backingAnimationEvent.functionName;
@@ -890,6 +920,19 @@ private void DuplicateEvent(ParsedEngageAnimationEvent sourceEvent)
                 clone.objectReferenceParameter = evt.newValue;
                 Undo.RegisterCompleteObjectUndo(getAttachedClip(),
                     $"Changing object reference for ${parsedEvent.displayName} Event to {evt.newValue}");
+                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
+            });
+        }
+        
+        private void BindTimeField(FloatField timeField, ParsedEngageAnimationEvent parsedEvent)
+        {
+            timeField.value = parsedEvent.backingAnimationEvent.time;
+            timeField.RegisterValueChangedCallback(evt =>
+            {
+                var clone = parsedEvent.backingAnimationEvent.Clone();
+                clone.time = evt.newValue;
+                Undo.RegisterCompleteObjectUndo(getAttachedClip(),
+                    $"Changing time for ${parsedEvent.displayName} Event to {evt.newValue}");
                 AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
         }

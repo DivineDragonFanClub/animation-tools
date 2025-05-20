@@ -16,7 +16,7 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
         private bool _initialized;
         private bool _showEditor;
         
-        public override string Summary => $"{quantizedPosition}";
+        public override string Summary => $"(x: {quantizedPosition.x:F2}, y: {quantizedPosition.y:F2}, z: {quantizedPosition.z:F2})";
         
         // for these, it's better to use the function name + string parameter
         public override string originalName => $"{backingAnimationEvent.functionName}, {backingAnimationEvent.stringParameter}";

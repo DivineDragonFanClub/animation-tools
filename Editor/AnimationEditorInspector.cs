@@ -192,7 +192,7 @@ namespace DivineDragon
                 return false;
             }
             // get the first instance
-            var eventViewer = EditorWindow.GetWindow<EventViewerV2>();
+            var eventViewer = EditorWindow.GetWindow<EventViewerV2>(false, null, false);
             var selectedEvents = eventViewer.GetSelectedEvents();
             if (selectedEvents != null)
             {
