@@ -186,13 +186,7 @@ namespace DivineDragon.Windows
             LoadPreferences(); // Load preferences at the beginning of UI rebuild
             myInspector.Clear();
             EditorApplication.update += handleScrollInTandem;
-            // EditorApplication.update += handleDraw;
             EditorApplication.update += HandleRefreshTick;
-
-            // Load preferences before creating UI elements that depend on them
-            // This ensures that if UpdateInspector is called multiple times (e.g., refresh),
-            // the toggles reflect the latest persisted or in-memory state.
-            // LoadPreferences(); // It's often better to load in OnEnable or when the window is explicitly shown.
 
             var editor = GetAnimationWindow();
             AnimationClip currentClip = getAttachedClip();
@@ -218,7 +212,7 @@ namespace DivineDragon.Windows
             };
             topControls.Add(scrubToEventButton);
 
-                        // Synced Scroll Button
+            // Synced Scroll Button
             var scrollInTandemButton = new Button();
             scrollInTandemButton.tooltip = "Scroll the event list when scrubbing the timeline in the animation window";
             UpdateButtonToggleState(scrollInTandemButton, scrollInTandem, "Synced Scroll");
