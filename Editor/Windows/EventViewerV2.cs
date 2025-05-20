@@ -13,6 +13,8 @@ namespace DivineDragon.Windows
     {
         private const string ScrollInTandemKey = "EventViewerV2_ScrollInTandem";
         private const string ScrubToEventKey = "EventViewerV2_ScrubToEvent";
+        private const string ShowDifferentialTimestampKey = "EventViewerV2_ShowDifferentialTimestamp";
+        private const string DeveloperModeKey = "EventViewerV2_DeveloperMode";
 
         [MenuItem("Divine Dragon/Animation Tools/Event Viewer")]
         public static void ShowExample()
@@ -54,17 +56,23 @@ namespace DivineDragon.Windows
 
         private bool scrollInTandem = false;
         private bool scrubToEvent = true;
+        private bool showDifferentialTimestamp = false;
+        private bool developerMode = false;
 
         private void LoadPreferences()
         {
             scrollInTandem = EditorPrefs.GetBool(ScrollInTandemKey, false);
             scrubToEvent = EditorPrefs.GetBool(ScrubToEventKey, true);
+            showDifferentialTimestamp = EditorPrefs.GetBool(ShowDifferentialTimestampKey, false);
+            developerMode = EditorPrefs.GetBool(DeveloperModeKey, false);
         }
 
         private void SavePreferences()
         {
             EditorPrefs.SetBool(ScrollInTandemKey, scrollInTandem);
             EditorPrefs.SetBool(ScrubToEventKey, scrubToEvent);
+            EditorPrefs.SetBool(ShowDifferentialTimestampKey, showDifferentialTimestamp);
+            EditorPrefs.SetBool(DeveloperModeKey, developerMode);
         }
 
         protected override void OnUnderlyingAnimationClipChanged()
@@ -216,6 +224,38 @@ namespace DivineDragon.Windows
 
             topControls.Add(scrollInTandemCheckbox);
             topControls.Add(clickToScrubToEventCheckbox);
+
+            var showDifferentialTimestampCheckbox = new Toggle("Show Differential Timestamp")
+            {
+                tooltip = "Show the time difference between the event and the current playhead time in the list",
+                value = showDifferentialTimestamp
+            };
+            showDifferentialTimestampCheckbox.RegisterValueChangedCallback(evt =>
+            {
+                showDifferentialTimestamp = evt.newValue;
+                SavePreferences();
+                if (listView != null)
+                {
+                    listView.Refresh();
+                }
+            });
+            topControls.Add(showDifferentialTimestampCheckbox);
+
+            var developerModeCheckbox = new Toggle("Developer Mode")
+            {
+                tooltip = "Show additional debug information for developers",
+                value = developerMode
+            };
+            developerModeCheckbox.RegisterValueChangedCallback(evt =>
+            {
+                developerMode = evt.newValue;
+                SavePreferences();
+                if (listView != null)
+                {
+                    listView.Refresh();
+                }
+            });
+            topControls.Add(developerModeCheckbox);
 
             // Get events and filter by display name
             var events = AnimationClipWatcher.GetParsedEvents(currentClip);
@@ -829,8 +869,14 @@ namespace DivineDragon.Windows
             // Bind data to UI elements
             var headerContainer = element.Q("header-container");
             headerContainer.Q<Label>("name-label").text = item.displayName;
-            headerContainer.Q<Label>("backing-name-label").text = item.originalName;
-            headerContainer.Q<Label>("uuid-label").text = item.Uuid;
+            var backingNameLabel = headerContainer.Q<Label>("backing-name-label");
+            backingNameLabel.text = item.originalName;
+            backingNameLabel.style.display = developerMode ? DisplayStyle.Flex : DisplayStyle.None;
+            
+            var uuidLabel = headerContainer.Q<Label>("uuid-label");
+            uuidLabel.text = item.Uuid;
+            uuidLabel.style.display = developerMode ? DisplayStyle.Flex : DisplayStyle.None;
+
             headerContainer.Q<Label>("time-label").text = $"({item.backingAnimationEvent.time:F3})";
 
             float deltaTime = item.backingAnimationEvent.time - currentTime;
@@ -838,6 +884,7 @@ namespace DivineDragon.Windows
             // Update time indicator
             var timeIndicator = element.Q<Label>("time-indicator");
             timeIndicator.text = $"({deltaTime:+0.000;-0.000;0.000}s)";
+            timeIndicator.style.display = showDifferentialTimestamp ? DisplayStyle.Flex : DisplayStyle.None;
 
             StyleColor borderColor;
             float width;
