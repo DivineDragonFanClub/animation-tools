@@ -11,6 +11,9 @@ namespace DivineDragon.Windows
 {
     public class EventViewerV2 : AnimationEditorInspectorHelper
     {
+        private const string ScrollInTandemKey = "EventViewerV2_ScrollInTandem";
+        private const string ScrubToEventKey = "EventViewerV2_ScrubToEvent";
+
         [MenuItem("Divine Dragon/Animation Tools/Event Viewer")]
         public static void ShowExample()
         {
@@ -52,6 +55,17 @@ namespace DivineDragon.Windows
         private bool scrollInTandem = false;
         private bool scrubToEvent = true;
 
+        private void LoadPreferences()
+        {
+            scrollInTandem = EditorPrefs.GetBool(ScrollInTandemKey, false);
+            scrubToEvent = EditorPrefs.GetBool(ScrubToEventKey, true);
+        }
+
+        private void SavePreferences()
+        {
+            EditorPrefs.SetBool(ScrollInTandemKey, scrollInTandem);
+            EditorPrefs.SetBool(ScrubToEventKey, scrubToEvent);
+        }
 
         protected override void OnUnderlyingAnimationClipChanged()
         {
@@ -130,6 +144,8 @@ namespace DivineDragon.Windows
             EditorApplication.update -= HandleRefreshTick;
             Undo.undoRedoPerformed -= UpdateInspectorCall;
             AnimationClipWatcher.OnClipEventsChanged -= OnClipChanged;
+            // Save preferences when the window is destroyed
+            SavePreferences();
         }
 
         List<string> selectedEvents = new List<string>();
@@ -152,10 +168,16 @@ namespace DivineDragon.Windows
 
         public void UpdateInspector(VisualElement myInspector)
         {
+            LoadPreferences(); // Load preferences at the beginning of UI rebuild
             myInspector.Clear();
             EditorApplication.update += handleScrollInTandem;
             // EditorApplication.update += handleDraw;
             EditorApplication.update += HandleRefreshTick;
+
+            // Load preferences before creating UI elements that depend on them
+            // This ensures that if UpdateInspector is called multiple times (e.g., refresh),
+            // the toggles reflect the latest persisted or in-memory state.
+            // LoadPreferences(); // It's often better to load in OnEnable or when the window is explicitly shown.
 
             var editor = GetAnimationWindow();
             AnimationClip currentClip = getAttachedClip();
@@ -172,17 +194,25 @@ namespace DivineDragon.Windows
             var scrollInTandemCheckbox = new Toggle("Synced Scroll")
             {
                 tooltip = "Scroll the event list when scrubbing the timeline in the animation window",
-                value = scrollInTandem
+                value = scrollInTandem // Use the loaded value
             };
 
-            scrollInTandemCheckbox.RegisterValueChangedCallback(evt => { scrollInTandem = evt.newValue; });
+            scrollInTandemCheckbox.RegisterValueChangedCallback(evt => 
+            { 
+                scrollInTandem = evt.newValue; 
+                SavePreferences(); // Save when value changes
+            });
 
             var clickToScrubToEventCheckbox = new Toggle("Click to Scrub to Event")
             {
                 tooltip = "Clicking on an event will scrub the timeline to that event",
-                value = true
+                value = scrubToEvent // Use the loaded value
             };
-            clickToScrubToEventCheckbox.RegisterValueChangedCallback(evt => { scrubToEvent = evt.newValue; });
+            clickToScrubToEventCheckbox.RegisterValueChangedCallback(evt => 
+            { 
+                scrubToEvent = evt.newValue; 
+                SavePreferences(); // Save when value changes
+            });
 
             topControls.Add(scrollInTandemCheckbox);
             topControls.Add(clickToScrubToEventCheckbox);
@@ -209,6 +239,7 @@ namespace DivineDragon.Windows
                         selectedEvents.Add(evt.Uuid);
                         if (scrubToEvent)
                         {
+                            FocusAnimationWindow();
                             // Also move the playhead to the event time
                             editor.time = evt.backingAnimationEvent.time;
                             // force refresh the animation window
@@ -323,13 +354,7 @@ namespace DivineDragon.Windows
             {
                 if (selectedEvents.Count > 0)
                 {
-                    // force the animation window to pop open
-                    Type animationWindowType = Type.GetType("UnityEditor.AnimationWindow,UnityEditor");
-                    if (animationWindowType != null)
-                    {
-                        FocusWindowIfItsOpen(animationWindowType);
-                    }
-
+                    FocusAnimationWindow();
                     editor.time = selectedEventItem.backingAnimationEvent.time;
                     editor.Repaint();
                 }
@@ -935,6 +960,19 @@ namespace DivineDragon.Windows
                     $"Changing time for ${parsedEvent.displayName} Event to {evt.newValue}");
                 AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
+        }
+
+        private void FocusAnimationWindow()
+        {
+            if (this.animationEditor != null)
+            {
+                Selection.activeGameObject = this.animationEditor.gameObject;
+            }
+            Type animationWindowType = Type.GetType("UnityEditor.AnimationWindow,UnityEditor");
+            if (animationWindowType != null)
+            {
+                FocusWindowIfItsOpen(animationWindowType);
+            }
         }
     }
 }
