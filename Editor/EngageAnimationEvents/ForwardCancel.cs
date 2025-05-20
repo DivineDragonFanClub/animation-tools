@@ -18,8 +18,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Summary => "Forward cancel.";
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {
-            // Could visualize cancel point with Handles.Label or draw a cancellation indicator
-            Debug.Log($"Forward Cancel at time: {backingAnimationEvent.time}");
         }
     }
 
