@@ -268,6 +268,41 @@ namespace DivineDragon
 
             return null;
         }
+
+        public static readonly IEqualityComparer<ParsedEngageAnimationEvent> EventComparer = new EventEqualityComparer();
+
+        private class EventEqualityComparer : IEqualityComparer<ParsedEngageAnimationEvent>
+        {
+            public bool Equals(ParsedEngageAnimationEvent x, ParsedEngageAnimationEvent y)
+            {
+                if (ReferenceEquals(x, y)) return true;
+                if (x is null || y is null) return false;
+                var a = x.backingAnimationEvent;
+                var b = y.backingAnimationEvent;
+                return a.time == b.time &&
+                       a.functionName == b.functionName &&
+                       a.intParameter == b.intParameter &&
+                       a.floatParameter == b.floatParameter &&
+                       a.stringParameter == b.stringParameter &&
+                       Equals(a.objectReferenceParameter, b.objectReferenceParameter);
+            }
+
+            public int GetHashCode(ParsedEngageAnimationEvent obj)
+            {
+                var a = obj.backingAnimationEvent;
+                unchecked
+                {
+                    int hash = 17;
+                    hash = hash * 23 + a.time.GetHashCode();
+                    hash = hash * 23 + (a.functionName?.GetHashCode() ?? 0);
+                    hash = hash * 23 + a.intParameter.GetHashCode();
+                    hash = hash * 23 + a.floatParameter.GetHashCode();
+                    hash = hash * 23 + (a.stringParameter?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (a.objectReferenceParameter?.GetHashCode() ?? 0);
+                    return hash;
+                }
+            }
+        }
     }
 
     public abstract class EngageAnimationEventParser<T> where T : ParsedEngageAnimationEvent

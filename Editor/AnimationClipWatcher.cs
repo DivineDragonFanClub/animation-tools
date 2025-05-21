@@ -25,14 +25,12 @@ namespace DivineDragon
         // Event that fires when a clip's events change
         public static event Action<AnimationClip, HashSet<string>> OnClipEventsChanged;
 
-
         // Static constructor gets called when Unity starts and after domain reloads
         static AnimationClipWatcher()
         {
             EditorApplication.update += CheckForChanges;
             AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
             AssemblyReloadEvents.afterAssemblyReload += OnAfterAssemblyReload;
-
             Debug.Log("AnimationClipWatcher initialized as editor service");
         }
 
@@ -138,14 +136,12 @@ namespace DivineDragon
         private static void CheckForChanges()
         {
             // Skip checking if user is dragging something in the editor
-            // Actually, the animation track still lags even if this is skipped - why?
-            // if (EditorGUIUtility.hotControl != 0)
-            // {
-            //     return;
-            // }
+            if (EditorGUIUtility.hotControl != 0)
+            {
+                return;
+            }
 
             List<int> keysToRemove = new List<int>();
-
             foreach (var entry in _watchedClips)
             {
                 int instanceID = entry.Key;
@@ -164,13 +160,40 @@ namespace DivineDragon
                     // Update stored hash
                     data.eventsHash = currentHash;
 
-                    // Notify listeners
-                    Debug.Log($"Animation events changed in clip outside of our tool control: {data.clip.name}");
+                    var oldParsedEvents = _parsedEventsCache.ContainsKey(instanceID) ? _parsedEventsCache[instanceID] : null;
+                    var newParsedEvents = AnimationEventParser.ParseAnimationEvents(data.clip.events);
+
+                    // Build sets for diff
+                    var removed = oldParsedEvents?.Except(newParsedEvents, ParsedEngageAnimationEvent.EventComparer).ToList() ?? new List<ParsedEngageAnimationEvent>();
+                    var added = newParsedEvents.Except(oldParsedEvents ?? new List<ParsedEngageAnimationEvent>(), ParsedEngageAnimationEvent.EventComparer).ToList();
+
+                    // for all unchanged events
+                    if (oldParsedEvents != null)
+                    {
+                        // Make a copy so we can remove as we match
+                        var unmatchedOld = new List<ParsedEngageAnimationEvent>(oldParsedEvents);
+                        foreach (var newEvent in newParsedEvents)
+                        {
+                            var match = unmatchedOld.FirstOrDefault(oldEvent => ParsedEngageAnimationEvent.EventComparer.Equals(oldEvent, newEvent));
+                            if (match != null)
+                            {
+                                newEvent.Uuid = match.Uuid;
+                                unmatchedOld.Remove(match);
+                            }
+                        }
+                    }
+
+                    // If exactly one event was added and one removed, reuse UUID, since this was likely the edit
+                    // This assumption will fall apart if we ever allow an instantaneous deletion of one event and addition of another
+                    // But for now, this is a reasonable assumption
+                    if (removed.Count == 1 && added.Count == 1)
+                    {
+                        added[0].Uuid = removed[0].Uuid;
+                    }
+
                     // Update parsed events cache
-
-                    _parsedEventsCache[instanceID] = AnimationEventParser.ParseAnimationEvents(data.clip.events);
-
-                    OnClipEventsChanged?.Invoke(data.clip, new HashSet<string>());
+                    _parsedEventsCache[instanceID] = newParsedEvents;
+                    OnClipEventsChanged?.Invoke(data.clip, new HashSet<string>(added.Select(e => e.Uuid)));
                 }
             }
 

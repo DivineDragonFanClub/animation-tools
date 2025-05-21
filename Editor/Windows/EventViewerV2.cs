@@ -130,32 +130,33 @@ namespace DivineDragon.Windows
             UpdateInspector(scrollView);
         }
 
-        private void OnClipChanged(AnimationClip clip, HashSet<string> newUUIDs)
+        private void OnClipChanged(AnimationClip changedClip, HashSet<string> addedEventUuids)
         {
-            // check if our clip is the one that changed
-            if (clip == getAttachedClip())
+            if (changedClip == getAttachedClip())
             {
-                // fetch the new events
-                var events = AnimationClipWatcher.GetParsedEvents(clip);
-                listView.itemsSource = events;
+                var latestParsedEvents = AnimationClipWatcher.GetParsedEvents(changedClip);
+                listView.itemsSource = latestParsedEvents;
+
+                // If exactly one new event was added, select and scroll to it
+                if (addedEventUuids.Count == 1)
+                {
+                    var newUuid = addedEventUuids.First();
+                    selectedEvents = new List<string> { newUuid };
+                    int newIndex = latestParsedEvents.FindIndex(item => item.Uuid == newUuid);
+                    listView.selectedIndex = newIndex;
+                    if (newIndex != -1)
+                    {
+                        listView.ScrollToItem(newIndex);
+                    }
+                }
+                else if (selectedEvents.Count != 0)
+                {
+                    // Try to preserve selection if possible
+                    listView.selectedIndex = latestParsedEvents.FindIndex(item => item.Uuid == selectedEvents[0]);
+                }
+
                 listView.Refresh();
-                if (selectedEvents.Count != 0)
-                {
-                    // find the index of the selected event in the filtered events
-                    listView.selectedIndex = events.FindIndex(item => item.Uuid == selectedEvents[0]);
-                }
-
-                if (newUUIDs.Count == 1)
-                {
-                    selectedEvents = new List<string>();
-                    var newUUID = newUUIDs.First();
-                    selectedEvents.Add(newUUID);
-                    scrollToUuid(newUUID);
-                    // scroll to the new event
-                }
-
-                // Update operations panel
-                UpdateOperationsPanel(operationsPanel, selectedEvents, clip, GetAnimationWindow());
+                UpdateOperationsPanel(operationsPanel, selectedEvents, changedClip, GetAnimationWindow());
             }
         }
 
