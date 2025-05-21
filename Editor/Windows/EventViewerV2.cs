@@ -54,6 +54,28 @@ namespace DivineDragon.Windows
             }
         }
 
+        public void scrollToUuid(string uuid)
+        {
+            int foundIndex = -1;
+            foreach (var item in listView.itemsSource)
+            {
+                if (item is ParsedEngageAnimationEvent parsedEvent)
+                {
+                    if (parsedEvent.Uuid == uuid)
+                    {
+                        foundIndex = listView.itemsSource.IndexOf(item);
+                        break;
+                    }
+                }
+            }
+
+            // scroll to the event
+            if (foundIndex != -1)
+            {
+                listView.ScrollToItem(foundIndex);
+            }
+        }
+
         private bool scrollInTandem = false;
         private bool scrubToEvent = true;
         private bool showDifferentialTimestamp = false;
@@ -126,7 +148,10 @@ namespace DivineDragon.Windows
                 if (newUUIDs.Count == 1)
                 {
                     selectedEvents = new List<string>();
-                    selectedEvents.Add(newUUIDs.First());
+                    var newUUID = newUUIDs.First();
+                    selectedEvents.Add(newUUID);
+                    scrollToUuid(newUUID);
+                    // scroll to the new event
                 }
 
                 // Update operations panel
