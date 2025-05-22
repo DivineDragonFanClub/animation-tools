@@ -17,9 +17,6 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
         };
         public override EventCategory category => EventCategory.MotionControl;
         
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-        }
     }
     
     public class RootAfterMovementParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

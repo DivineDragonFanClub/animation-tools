@@ -19,10 +19,6 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
 
 
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // Implement the logic for when the animation is scrubbed to this event
-        }
         
         public override EventCategory category => EventCategory.AttackSpecifics;
         

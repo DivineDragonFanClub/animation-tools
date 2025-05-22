@@ -19,15 +19,6 @@ namespace DivineDragon.EngageAnimationEvents
         
         public override EventCategory category => EventCategory.MotionControl;
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // When scrubbed to, could set character's run speed for preview
-            // var characterMove = go.GetComponent<CharacterMove>();
-            // if (characterMove != null)
-            // {
-            //     characterMove.SetMaxRunSpeed(backingAnimationEvent.floatParameter);
-            // }
-        }
     }
 
     public class RunSpeedParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

@@ -19,9 +19,6 @@ namespace DivineDragon.EngageAnimationEvents
             ExposedPropertyType.String
         };
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-        }
     }
 
     public class OpponentActionParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

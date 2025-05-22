@@ -232,7 +232,10 @@ namespace DivineDragon
             return null;
         }
 
-        public abstract void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events);
+        public virtual void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
+        {
+            // Default implementation - subclasses can override if needed
+        }
 
         public virtual void AlwaysRender(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {

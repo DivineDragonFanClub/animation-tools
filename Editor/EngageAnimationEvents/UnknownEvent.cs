@@ -23,10 +23,6 @@ namespace DivineDragon.EngageAnimationEvents
         };
         public override string displayName => "Unknown Event";
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // throw new System.NotImplementedException();
-        }
     }
     
     public class UnknownEventParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

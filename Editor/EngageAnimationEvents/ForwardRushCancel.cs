@@ -17,9 +17,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Summary => "Forward rush cancel.";
 
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-        }
     }
 
     public class ForwardRushCancelParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

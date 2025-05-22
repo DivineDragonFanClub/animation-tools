@@ -40,10 +40,6 @@ namespace DivineDragon.EngageAnimationEvents
             return container;
         }
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            
-        }
     }
 
     public class AttackPossibleRangeParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

@@ -22,10 +22,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override string displayName => "Particle";
         public override EventCategory category => EventCategory.Particle;
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // Implement the logic for when the animation is scrubbed to this event
-        }
     }
 
     public class ParticleParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

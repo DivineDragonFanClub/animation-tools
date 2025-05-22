@@ -16,9 +16,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Explanation => "Signals when the forward cancel is. More investigations are needed to determine the exact purpose of this event.";
         
         public override string Summary => "Forward cancel.";
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-        }
     }
 
     public class ForwardCancelParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

@@ -19,9 +19,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Summary => $"Not yet investigated.";
 
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-        }
     }
 
     public class LookAtRateParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

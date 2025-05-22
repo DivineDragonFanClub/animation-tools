@@ -19,10 +19,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Explanation { get; } = "Not yet investigated";
         
         public override string Summary => $"{backingAnimationEvent.floatParameter}";
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // Implement the logic for when the animation is scrubbed to this event
-        }
     }
 
     public class TransitionTimeParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

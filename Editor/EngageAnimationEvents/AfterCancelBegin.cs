@@ -12,10 +12,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Explanation => "Signals when the backward cancel begins.";
         
         public override string Summary => "Backward cancel begins.";
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // throw new System.NotImplementedException();
-        }
     }
     public class AfterCancelBeginParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

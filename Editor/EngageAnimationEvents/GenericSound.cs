@@ -18,10 +18,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override string Explanation { get; } = "Play a generic sound effect. Refer to the game's files for possible sound effect names.";
         public override string Summary => $"Play sound: {backingAnimationEvent.stringParameter}";
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // Implement the logic for when the animation is scrubbed to this event
-        }
         
     }
 

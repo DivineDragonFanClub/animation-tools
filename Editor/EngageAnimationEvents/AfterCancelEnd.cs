@@ -9,10 +9,6 @@ namespace DivineDragon.EngageAnimationEvents
         public override EventCategory category => EventCategory.Cancels;
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
         public override string displayName => "Backward Cancel End";
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // throw new System.NotImplementedException();
-        }
         
         public override string Explanation { get; } = "Signals the end of a backward cancel.";
         

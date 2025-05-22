@@ -19,10 +19,6 @@ namespace DivineDragon.EngageAnimationEvents
         
         public override string Summary => $"With offset: {backingAnimationEvent.floatParameter}";
         
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        { 
-            // Nothing
-        }
     }
 
     public class LandingParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

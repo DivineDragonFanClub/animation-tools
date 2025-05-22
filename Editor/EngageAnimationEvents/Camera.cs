@@ -134,10 +134,6 @@ namespace DivineDragon.EngageAnimationEvents
             return container;
         }
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // Implement the logic for when the animation is scrubbed to this event
-        }
     }
 
     public class CameraAnimationParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

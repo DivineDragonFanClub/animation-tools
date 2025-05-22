@@ -21,10 +21,6 @@ namespace DivineDragon.EngageAnimationEvents
         
         public override string Summary => $"Create object \"{backingAnimationEvent.stringParameter}\" from \"{backingAnimationEvent.objectReferenceParameter?.name}\".";
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // Implement the logic for when the animation is scrubbed to this event
-        }
     }
 
     public class GenericObjectParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

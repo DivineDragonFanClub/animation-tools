@@ -17,10 +17,6 @@ namespace DivineDragon.EngageAnimationEvents
         
         public override string Summary => "Opponent dodges the attack.";
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // Implement the logic for when the animation is scrubbed to this event
-        }
     }
 
     public class OpponentDodgeParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>

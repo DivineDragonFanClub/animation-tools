@@ -23,10 +23,6 @@ namespace DivineDragon.EngageAnimationEvents
         
         public override string Summary => $"World time scale set to {backingAnimationEvent.floatParameter}.";
 
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // Implement the logic for when the animation is scrubbed to this event
-        }
     }
 
     public class WorldTimeParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
