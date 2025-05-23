@@ -36,5 +36,12 @@ namespace DivineDragon.EngageAnimationEvents
             };
             return opponentAction;
         }
+        
+        public override AnimationEvent Create()
+        {
+            var evt = base.Create();
+            evt.stringParameter = "Ready";
+            return evt;
+        }
     }
 }

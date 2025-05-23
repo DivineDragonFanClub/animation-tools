@@ -49,5 +49,12 @@ namespace DivineDragon.EngageAnimationEvents
             };
             return criticalVoice;
         }
+        
+        public override AnimationEvent Create()
+        {
+            var evt = base.Create();
+            evt.intParameter = 1;
+            return evt;
+        }
     }
 }

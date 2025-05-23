@@ -340,7 +340,7 @@ namespace DivineDragon
 
         public abstract T ParseFrom(AnimationEvent animEvent);
 
-        public AnimationEvent Create()
+        public virtual AnimationEvent Create()
         {
             var myEvent = new AnimationEvent();
             // Use the first match rule to create a new AnimationEvent

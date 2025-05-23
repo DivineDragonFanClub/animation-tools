@@ -51,5 +51,12 @@ namespace DivineDragon.EngageAnimationEvents
             };
             return leftFootAscending;
         }
+
+        public override AnimationEvent Create()
+        {
+            AnimationEvent evt = base.Create();
+            evt.floatParameter = 0.5f;
+            return evt;
+        }
     }
 }

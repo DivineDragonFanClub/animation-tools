@@ -38,5 +38,12 @@ namespace DivineDragon.EngageAnimationEvents
             };
             return genericObject;
         }
+        
+        public override AnimationEvent Create()
+        {
+            var evt = base.Create();
+            evt.stringParameter = "PC";
+            return evt;
+        }
     }
 }
