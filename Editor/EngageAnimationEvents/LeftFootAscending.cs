@@ -8,11 +8,13 @@ namespace DivineDragon.EngageAnimationEvents
     public class LeftFootAscending : ParsedEngageAnimationEvent
     {
         public override string displayName => "Left Foot Up";
-        
-        public override string Summary => "Left foot is up.";
-        
+
         public override EventCategory category => EventCategory.FootLeft;
-        
+
+        public override string Summary { get; } = "Left foot is up.";
+
+        public override string Explanation { get; } = "Signals that the left foot has left the ground.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Float,
@@ -32,10 +34,9 @@ namespace DivineDragon.EngageAnimationEvents
                 Handles.Label(c_l_leg4_jnt.position, labelText, style);
             }
         }
-
-        public override string Explanation { get; } = "Signals that the left foot has left the ground.";
     }
-    
+
+
     public class LeftFootAscendingParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
         public override MatchRule[] matchRules => new MatchRule[]

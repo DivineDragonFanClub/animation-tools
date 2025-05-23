@@ -19,17 +19,19 @@ namespace DivineDragon.EngageAnimationEvents
             { "OpenLoop", 4 }
         };
 
+        public override string displayName => "Weapon Animation";
+
+        public override EventCategory category => EventCategory.WeaponControl;
+
+        public override string Summary => $"Play the {backingAnimationEvent.stringParameter} weapon animation.";
+
+        public override string Explanation { get; } = "Play a weapon animation. Only the string parameter is actually used by the game.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Int,
             ExposedPropertyType.String,
         };
-
-        public override string displayName => "Weapon Animation";
-        public override string Summary => $"Play the {backingAnimationEvent.stringParameter} weapon animation.";
-        
-        public override EventCategory category => EventCategory.WeaponControl;
-        public override string Explanation { get; } = "Play a weapon animation. Only the string parameter is actually used by the game.";
         
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {
@@ -85,6 +87,7 @@ namespace DivineDragon.EngageAnimationEvents
             return container;
         }
     }
+
 
     public class WeaponAnimationParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

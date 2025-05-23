@@ -11,20 +11,20 @@ namespace DivineDragon.EngageAnimationEvents
     // I think that's what this is for.
     public class AttackPossibleRange : ParsedEngageAnimationEvent
     {
+        public override string displayName => "Attack Possible Range";
+
         public override EventCategory category => EventCategory.AttackSpecifics;
+
+        public override string Summary => $"Near Range: {Math.Abs(backingAnimationEvent.intParameter / 10000.0f)}, " +
+                                           $"Far Range: {Math.Abs(backingAnimationEvent.floatParameter)}";
+
+        public override string Explanation { get; } = "Controls at what distances the game will try to use this animation.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Int,
             ExposedPropertyType.Float
         };
-
-        public override string displayName => "Attack Possible Range";
-
-        public override string Explanation { get; } = "Controls at what distances the game will try to use this animation.";
-        
-        public override string Summary => $"Near Range: {Math.Abs(backingAnimationEvent.intParameter / 10000.0f)}, " +
-                                           $"Far Range: {Math.Abs(backingAnimationEvent.floatParameter)}";
         public override VisualElement MakeSpecialEditor(Action<ParsedEngageAnimationEvent, AnimationEvent> onSave,
             List<ParsedEngageAnimationEvent> events)
         {
@@ -41,6 +41,7 @@ namespace DivineDragon.EngageAnimationEvents
         }
 
     }
+
 
     public class AttackPossibleRangeParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

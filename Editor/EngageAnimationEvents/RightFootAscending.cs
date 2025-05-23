@@ -8,12 +8,13 @@ namespace DivineDragon.EngageAnimationEvents
     public class RightFootAscending: ParsedEngageAnimationEvent
     {
         public override string displayName => "Right Foot Up";
-        
-        public override string Explanation { get; } = "Signals that the right foot has left the ground.";
-        public override string Summary => "Right foot is up.";
 
         public override EventCategory category => EventCategory.FootRight;
-        
+
+        public override string Summary { get; } = "Right foot is up.";
+
+        public override string Explanation { get; } = "Signals that the right foot has left the ground.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Float
@@ -34,7 +35,8 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
     }
-    
+
+
     public class RightFootAscendingParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>    {
         public override MatchRule[] matchRules => new MatchRule[]
         {

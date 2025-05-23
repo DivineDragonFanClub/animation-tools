@@ -11,8 +11,28 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class Jump : ParsedEngageAnimationEvent
     {
+        public enum CurveType
+        {
+            Linear = 0,
+            Accel = 1,
+            Decel = 2,
+            AccelDecel = 3,
+            DecelAccel = 4,
+            LinearDecel = 5,
+            LinearAccel = 6,
+            DecelLinear = 7,
+            AccelLinear = 8
+        }
+
         public override string displayName => "Jump";
+
         public override EventCategory category => EventCategory.MotionControl;
+
+        public override string Summary => 
+            $"{(GetJumpIsGrounding() ? "Grounding" : "Non-grounding")}, " +
+            $"duration {GetLandingTimeAfter():F2}s, " +
+            $"using {GetJumpCurveType()} curve (power: {GetJumpCurvePower()}), " +
+            $"landing at point {GetLandingPoint():F2}";
 
         public override string Explanation { get; } = "Jump event for the character. More investigation needed to fully understand its parameters.";
 
@@ -21,12 +41,6 @@ namespace DivineDragon.EngageAnimationEvents
             ExposedPropertyType.Float,
             ExposedPropertyType.Int
         };
-
-        public override string Summary => 
-            $"{(GetJumpIsGrounding() ? "Grounding" : "Non-grounding")}, " +
-            $"duration {GetLandingTimeAfter():F2}s, " +
-            $"using {GetJumpCurveType()} curve (power: {GetJumpCurvePower()}), " +
-            $"landing at point {GetLandingPoint():F2}";
 
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {
@@ -97,20 +111,7 @@ namespace DivineDragon.EngageAnimationEvents
             clone.intParameter = result;
             return clone;
         }
-        
-        public enum CurveType
-        {
-            Linear = 0,
-            Accel = 1,
-            Decel = 2,
-            AccelDecel = 3,
-            DecelAccel = 4,
-            LinearDecel = 5,
-            LinearAccel = 6,
-            DecelLinear = 7,
-            AccelLinear = 8
-        }
-        
+
         private CurveType GetJumpCurveType()
         {
             int param = backingAnimationEvent.intParameter;
@@ -195,6 +196,7 @@ namespace DivineDragon.EngageAnimationEvents
             return container;
         }
     }
+
 
     public class JumpParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

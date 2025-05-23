@@ -6,25 +6,21 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class DeleteParticle : ParsedEngageAnimationEvent
     {
-        
+        public override string displayName => "Delete Particle";
+
+        public override EventCategory category => EventCategory.Particle;
+
+        public override string Summary => $"Delete particle: {backingAnimationEvent.objectReferenceParameter?.name} from {backingAnimationEvent.stringParameter}";
+
+        public override string Explanation { get; } = "Delete a particle - takes a string and an object reference. The string is believed to be the name of the particle to delete, and the object reference is the particle system to delete it from.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.String,
             ExposedPropertyType.ObjectReference
         };
-        
-        public override string Explanation { get; } = "Delete a particle - takes a string and an object reference. The string is believed to be the name of the particle to delete, and the object reference is the particle system to delete it from.";
-        
-        // try to fetch the name of the particle from the object reference
-        public override string Summary => $"Delete particle: {backingAnimationEvent.objectReferenceParameter?.name} from {backingAnimationEvent.stringParameter}";
-
-        public override string displayName => "Delete Particle";
-        public override EventCategory category => EventCategory.Particle;
-
-
-
-
     }
+
 
     public class DeleteParticleParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

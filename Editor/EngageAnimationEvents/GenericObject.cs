@@ -6,22 +6,21 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class GenericObject : ParsedEngageAnimationEvent
     {
+        public override string displayName => "Generic Object";
+
+        public override EventCategory category => EventCategory.WeaponControl;
+
+        public override string Summary => $"Create object \"{backingAnimationEvent.stringParameter}\" from \"{backingAnimationEvent.objectReferenceParameter?.name}\".";
+
+        public override string Explanation { get; } = "In the game's files, this is only ever called with the string PC as the name, and an object reference that is PrefetchedCurve_Bridge.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.String,
             ExposedPropertyType.ObjectReference
         };
-        
-        public override EventCategory category => EventCategory.WeaponControl;
-
-        public override string displayName => "Generic Object";
-
-        public override string Explanation =>
-            "In the game's files, this is only ever called with the string PC as the name, and an object reference that is PrefetchedCurve_Bridge.";
-        
-        public override string Summary => $"Create object \"{backingAnimationEvent.stringParameter}\" from \"{backingAnimationEvent.objectReferenceParameter?.name}\".";
-
     }
+
 
     public class GenericObjectParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

@@ -8,10 +8,12 @@ namespace DivineDragon.EngageAnimationEvents
     public class CriticalVoice : ParsedEngageAnimationEvent
     {
         public override string displayName => "Critical Voice";
+
         public override EventCategory category => EventCategory.AttackingCharacter;
 
+        public override string Summary { get; } = "Play critical voice clip.";
+
         public override string Explanation { get; } = "Play a critical voice clip. No parameters are used, as the game will automatically select the appropriate voice clip.";
-        public override string Summary => $"Play critical voice clip.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
@@ -33,6 +35,7 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
     }
+
 
     public class CriticalVoiceParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

@@ -7,19 +7,19 @@ namespace DivineDragon.EngageAnimationEvents
     public class OpponentAction : ParsedEngageAnimationEvent
     {
         public override string displayName => "Opponent Action";
-        
+
         public override EventCategory category => EventCategory.Opponent;
 
-        public override string Explanation { get; } = "Make opponent perform an action. The game only ever calls this function with a string parameter of Ready.";
-        
         public override string Summary => $"Action: {backingAnimationEvent.stringParameter}";
+
+        public override string Explanation { get; } = "Make opponent perform an action. The game only ever calls this function with a string parameter of Ready.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.String
         };
-
     }
+
 
     public class OpponentActionParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

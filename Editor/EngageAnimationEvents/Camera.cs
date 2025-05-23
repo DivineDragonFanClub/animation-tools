@@ -9,7 +9,16 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class Camera : ParsedEngageAnimationEvent
     {
+        public override string displayName => "Camera";
+
         public override EventCategory category => EventCategory.Camera;
+
+        public override string Summary => $"Camera Name: {backingAnimationEvent.stringParameter}, " +
+                                          $"For Self: {IsForSelf()}, " +
+                                          $"For Enemy: {IsForEnemy()}, " +
+                                          $"Inverse: {IsInverse()}";
+
+        public override string Explanation { get; } = "The string parameter is the name of the camera, and the int parameter is used for determining if it's a camera that's used for self, the opponent, or both. Additionally, it determines if the camera should be inverted. More investigation is needed to determine what all this really means in practice..";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
@@ -28,14 +37,6 @@ namespace DivineDragon.EngageAnimationEvents
             // also, it might be ANDed with 8, which determines if the camera gets SetInverse called on it
             // see code around 71025b924c
         };
-        public override string displayName => "Camera";
-
-        public override string Explanation { get; } = "The string parameter is the name of the camera, and the int parameter is used for determining if it's a camera that's used for self, the opponent, or both. Additionally, it determines if the camera should be inverted. More investigation is needed to determine what all this really means in practice..";
-        
-        public override string Summary => $"Camera Name: {backingAnimationEvent.stringParameter}, " +
-                                          $"For Self: {IsForSelf()}, " +
-                                          $"For Enemy: {IsForEnemy()}, " +
-                                          $"Inverse: {IsInverse()}";
 
         private bool IsForSelf()
         {
@@ -135,6 +136,7 @@ namespace DivineDragon.EngageAnimationEvents
         }
 
     }
+
 
     public class CameraAnimationParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

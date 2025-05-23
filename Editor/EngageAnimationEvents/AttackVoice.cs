@@ -8,11 +8,13 @@ namespace DivineDragon.EngageAnimationEvents
     public class AttackVoice : ParsedEngageAnimationEvent
     {
         public override string displayName => "Attack Voice";
+
         public override EventCategory category => EventCategory.AttackingCharacter;
 
         public override string Summary => $"Play the '{backingAnimationEvent.stringParameter}' attack voice clip.";
-        
+
         public override string Explanation { get; } = "Plays the specified attack voice clip. The clip name is passed as a string parameter.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.String,
@@ -33,6 +35,7 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
     }
+
 
     public class AttackVoiceParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

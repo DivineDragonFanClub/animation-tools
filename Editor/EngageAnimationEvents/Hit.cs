@@ -12,19 +12,28 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class Hit : ParsedEngageAnimationEvent
     {
-        public override EventCategory category => EventCategory.AttackSpecifics;
-
-        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
+        // Namespace: Combat
+        public enum HitstopScale
         {
-            ExposedPropertyType.String,
-            ExposedPropertyType.Float,
-            ExposedPropertyType.Int
-        };
+            One = 0,
+            Half = 1,
+            Quarter = 2,
+            Zero = 3
+        }
+
+        public enum SlashType
+        {
+            Slash = 0,
+            Sting = 1,
+            Blow = 2,
+            Undisplay = 3,
+            Magic = 4
+        }
 
         public override string displayName => "Hit";
-        
-        public override string Explanation { get; } = "The enemy is getting hit here. Check the game's files for usage examples.";
-        
+
+        public override EventCategory category => EventCategory.AttackSpecifics;
+
         // Write a short summary of the event
         public override string Summary
         {
@@ -34,6 +43,15 @@ namespace DivineDragon.EngageAnimationEvents
                 return $"{(GetIsDummy() ? "Dummy " : "")}{GetSlashType()} attack with hitstop {GetHitstopScale()}, hand type {GetHitHandType()}, direction (x: {dir.x:F2}, y: {dir.y:F2}, z: {dir.z:F2})";
             }
         }
+
+        public override string Explanation { get; } = "The enemy is getting hit here. Check the game's files for usage examples.";
+
+        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
+        {
+            ExposedPropertyType.String,
+            ExposedPropertyType.Float,
+            ExposedPropertyType.Int
+        };
 
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {
@@ -54,27 +72,9 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
 
-        // Namespace: Combat
-        public enum HitstopScale
-        {
-            One = 0,
-            Half = 1,
-            Quarter = 2,
-            Zero = 3
-        }
-
         private HitstopScale GetHitstopScale()
         {
             return (HitstopScale)Bit.Get(backingAnimationEvent.intParameter, 2, 0x15);
-        }
-
-        public enum SlashType
-        {
-            Slash = 0,
-            Sting = 1,
-            Blow = 2,
-            Undisplay = 3,
-            Magic = 4
         }
 
         private SlashType GetSlashType()
@@ -347,6 +347,7 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
     }
+
 
     public class HitParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

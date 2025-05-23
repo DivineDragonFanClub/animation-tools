@@ -10,19 +10,8 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class Expression: ParsedEngageAnimationEvent
     {
-        // return a formated string explaining which expression is being used
-        public override string Summary => "Show the " + backingAnimationEvent.stringParameter + " expression.";
-        
-        // return a string explaining what this event does
-        public override string Explanation => "Shows an expression for the character. " +
-                                              "The string is the name of the expression, and the int is the index of the expression in the list, though in actuality, only the string parameter is actually used.";
         // string array for the possible expressions
-        public override string displayName => "Facial Expression";
-
-        public override EventCategory category => EventCategory.AttackingCharacter;
-
-        // string array for the possible expressions
-        public static string[] Expressions = new[]
+        public static readonly string[] Expressions = new[]
         {
             "Normal",
             "Angry",
@@ -39,7 +28,16 @@ namespace DivineDragon.EngageAnimationEvents
             "Serious",
             "Shy",
         };
-        
+
+        public override string displayName => "Facial Expression";
+
+        public override EventCategory category => EventCategory.AttackingCharacter;
+
+        public override string Summary => "Show the " + backingAnimationEvent.stringParameter + " expression.";
+
+        public override string Explanation { get; } = "Shows an expression for the character. " +
+                                              "The string is the name of the expression, and the int is the index of the expression in the list, though in actuality, only the string parameter is actually used.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Int, // By inspection, the int field is never read by the game.
@@ -127,7 +125,8 @@ namespace DivineDragon.EngageAnimationEvents
         }
 
     }
-    
+
+
     public class ExpressionParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>    {
         public override MatchRule[] matchRules => new MatchRule[]
         {

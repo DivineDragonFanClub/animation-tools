@@ -9,11 +9,11 @@ namespace DivineDragon.EngageAnimationEvents
     {
         public override string displayName => "Heavy Motion Begin";
 
-        public override string Explanation { get; } = "Signals the beginning of a heavy motion. Its effect is not yet fully understood.";
-        
-        public override string Summary { get; } = "The beginning of a heavy motion.";
-        
         public override EventCategory category => EventCategory.MotionControl;
+
+        public override string Summary { get; } = "The beginning of a heavy motion.";
+
+        public override string Explanation { get; } = "Signals the beginning of a heavy motion. Its effect is not yet fully understood.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
 
@@ -32,6 +32,7 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
     }
+
 
     public class HeavyMotionBeginParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

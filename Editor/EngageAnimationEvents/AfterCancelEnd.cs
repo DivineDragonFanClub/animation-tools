@@ -6,16 +6,17 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class AfterCancelEnd : ParsedEngageAnimationEvent
     {
-        public override EventCategory category => EventCategory.Cancels;
-        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
         public override string displayName => "Backward Cancel End";
-        
+
+        public override EventCategory category => EventCategory.Cancels;
+
+        public override string Summary { get; } = "Backward cancel ends.";
+
         public override string Explanation { get; } = "Signals the end of a backward cancel.";
-        
-        public override string Summary => "Backward cancel ends.";
 
-
+        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
     }
+
 
     public class AfterCancelEndParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

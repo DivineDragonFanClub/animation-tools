@@ -8,13 +8,12 @@ namespace DivineDragon.EngageAnimationEvents
     public class LeftFootTouchesGround : ParsedEngageAnimationEvent
     {
         public override string displayName => "Left Foot Down";
-        
-        public override string Explanation { get; } = "Signals that the left foot has landed on the ground.";
-        
-        public override string Summary => "Left foot is down.";
-
 
         public override EventCategory category => EventCategory.FootLeft;
+
+        public override string Summary { get; } = "Left foot is down.";
+
+        public override string Explanation { get; } = "Signals that the left foot has landed on the ground.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
@@ -36,7 +35,8 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
     }
-    
+
+
     public class LeftFootTouchesGroundParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
         public override MatchRule[] matchRules => new MatchRule[]

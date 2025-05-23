@@ -10,7 +10,9 @@ namespace DivineDragon.EngageAnimationEvents
         {
             backingAnimationEvent = animEvent;
         }
-        
+
+        public override string displayName => "Unknown Event";
+
         public override EventCategory category => EventCategory.Uncategorized;
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
@@ -21,10 +23,9 @@ namespace DivineDragon.EngageAnimationEvents
             ExposedPropertyType.ObjectReference,
             ExposedPropertyType.FunctionName,
         };
-        public override string displayName => "Unknown Event";
-
     }
-    
+
+
     public class UnknownEventParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
         public override MatchRule[] matchRules => new MatchRule[]

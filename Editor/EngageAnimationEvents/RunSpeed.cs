@@ -6,20 +6,20 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class RunSpeed : ParsedEngageAnimationEvent
     {
+        public override string displayName => "Run Speed";
+
+        public override EventCategory category => EventCategory.MotionControl;
+
+        public override string Summary => $"Run speed set to {backingAnimationEvent.floatParameter}.";
+
+        public override string Explanation { get; } = "Sets the character's run speed. Optional, and only used in RunLoops animations.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Float
         };
-
-        public override string displayName => "Run Speed";
-
-        public override string Explanation { get; } = "Sets the character's run speed. Optional, and only used in RunLoops animations.";
-        
-        public override string Summary => $"Run speed set to {backingAnimationEvent.floatParameter}.";
-        
-        public override EventCategory category => EventCategory.MotionControl;
-
     }
+
 
     public class RunSpeedParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
@@ -38,7 +38,8 @@ namespace DivineDragon.EngageAnimationEvents
         }
     }
 }
-        // todo: Combat.Character$$SetupForCombat
+
+// todo: Combat.Character$$SetupForCombat
         //     pUVar8 = UnityEngine.AnimationClip$$get_events
         //                    ((a->fields)._Clip_k__BackingField,(MethodInfo *)0x0);
         // __this_02 = Combat.RuntimeAnimationEventUtility$$FindByName(pUVar8,Run速度,(MethodInfo *)0x0);

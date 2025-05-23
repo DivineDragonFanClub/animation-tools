@@ -6,12 +6,14 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class LocalShootPosition : ParsedEngageAnimationEvent
     {
-        public override EventCategory category => EventCategory.AttackSpecifics;
         public override string displayName => "Local Shoot Position";
-        
+
+        public override EventCategory category => EventCategory.AttackSpecifics;
+
+        public override string Summary { get; } = "Not yet investigated.";
+
         public override string Explanation { get; } = "Not yet investigated. Likely related to the shoot position of a projectile or similar.";
-        
-        public override string Summary => $"Not yet investigated.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Float,
@@ -19,9 +21,9 @@ namespace DivineDragon.EngageAnimationEvents
             ExposedPropertyType.String,
             ExposedPropertyType.ObjectReference
         };
-
     }
-    
+
+
     public class LocalShootPositionParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>    {
         public override MatchRule[] matchRules => new MatchRule[]
         {

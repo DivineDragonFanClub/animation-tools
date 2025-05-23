@@ -5,18 +5,18 @@ using UnityEngine;
 namespace DivineDragon.EngageAnimationEvents
 {
     public class ForwardCancel : ParsedEngageAnimationEvent
-    
     {
-        public override EventCategory category => EventCategory.Cancels;
-
-        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
-
         public override string displayName => "Forward Cancel";
 
-        public override string Explanation => "Signals when the forward cancel is. More investigations are needed to determine the exact purpose of this event.";
-        
-        public override string Summary => "Forward cancel.";
+        public override EventCategory category => EventCategory.Cancels;
+
+        public override string Summary { get; } = "Forward cancel.";
+
+        public override string Explanation { get; } = "Signals when the forward cancel is. More investigations are needed to determine the exact purpose of this event.";
+
+        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
     }
+
 
     public class ForwardCancelParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

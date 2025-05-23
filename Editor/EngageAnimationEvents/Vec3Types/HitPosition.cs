@@ -9,6 +9,9 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
     public class HitPosition : QuantizedEvent
     {
         public override string displayName => "Hit Position";
+
+        public override EventCategory category => EventCategory.AttackSpecifics;
+
         public override string Explanation { get; } = "Marks the hit position of this attack. Not yet fully understood.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
@@ -16,11 +19,6 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
             ExposedPropertyType.Float,
             ExposedPropertyType.Int,
         };
-
-
-
-        
-        public override EventCategory category => EventCategory.AttackSpecifics;
         
         public override void AlwaysRender(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {
@@ -51,7 +49,8 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
             }
         }
     }
-    
+
+
     public class HitPositionParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
         public override MatchRule[] matchRules => new MatchRule[]

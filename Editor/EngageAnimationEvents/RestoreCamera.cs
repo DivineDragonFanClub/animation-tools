@@ -6,18 +6,20 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class RestoreCamera : ParsedEngageAnimationEvent
     {
+        public override string displayName => "Restore Camera";
+
         public override EventCategory category => EventCategory.Camera;
+
+        public override string Summary { get; } = "Restore camera.";
+
+        public override string Explanation { get; } = "Restores the camera to its original position, ending any Camera event.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
 
         };
-        
-        public override string Explanation { get; } = "Restores the camera to its original position, ending any Camera event.";
-        public override string Summary => "Restore camera.";
-
-        public override string displayName => "Restore Camera";
     }
+
 
     public class RestoreCameraAnimationParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

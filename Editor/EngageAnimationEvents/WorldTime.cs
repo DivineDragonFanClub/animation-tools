@@ -8,22 +8,22 @@ namespace DivineDragon.EngageAnimationEvents
     //           (Combat_CharacterTimespace_o *__this,Combat_Character_o *chr,MethodInfo *method)
     public class WorldTime : ParsedEngageAnimationEvent
     {
+        public override string displayName => "World Time";
+
+        public override EventCategory category => EventCategory.Camera;
+
+        public override string Summary => $"World time scale set to {backingAnimationEvent.floatParameter}.";
+
+        public override string Explanation { get; } = "Slows down the world time. 1 is normal speed, and smaller values slow down the time. One potential confusing point is, even if the game time is slowed down, some events (such as another WorldTime) still proceed in realtime and are not slowed down by other WorldTime events.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Float, // a float that should be anything less than 1? 
             // 1 is the end of the world
             ExposedPropertyType.Int // might be for Combat.SignalToWhom$$IsForMe, which means in general it will be 3
         };
-        
-        public override EventCategory category => EventCategory.Camera;
-
-        public override string displayName => "World Time";
-        
-        public override string Explanation { get; } = "Slows down the world time. 1 is normal speed, and smaller values slow down the time. One potential confusing point is, even if the game time is slowed down, some events (such as another WorldTime) still proceed in realtime and are not slowed down by other WorldTime events.";
-        
-        public override string Summary => $"World time scale set to {backingAnimationEvent.floatParameter}.";
-
     }
+
 
     public class WorldTimeParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

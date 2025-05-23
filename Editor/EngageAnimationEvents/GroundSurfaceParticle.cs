@@ -7,21 +7,21 @@ namespace DivineDragon.EngageAnimationEvents
     // see Combat.CharacterSignalObserver$$GroundParticle for how it's used
     public class GroundSurfaceParticle : ParsedEngageAnimationEvent
     {
+        public override string displayName => "Ground Surface Particle";
+
+        public override EventCategory category => EventCategory.Particle;
+
+        public override string Summary => $"Particle at location {backingAnimationEvent.stringParameter} with option: {backingAnimationEvent.intParameter}";
+
+        public override string Explanation { get; } = "Play a ground surface particle effect. See the game's files for usage examples.";
+
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Int,
             ExposedPropertyType.String,
-        };        
-        
-        public override string displayName => "Ground Surface Particle";
-        public override EventCategory category => EventCategory.Particle;
-
-        public override string Explanation { get; } = "Play a ground surface particle effect. See the game's files for usage examples.";
-        
-        public override string Summary => $"Particle at location {backingAnimationEvent.stringParameter} with option: {backingAnimationEvent.intParameter}";
-
-
+        };
     }
+
 
     public class GroundSurfaceParticleParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

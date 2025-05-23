@@ -8,6 +8,8 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
     {
         public override string displayName => "Root After Movement";
 
+        public override EventCategory category => EventCategory.MotionControl;
+
         public override string Explanation { get; } = "Marks the location of the root at the end of the clip. Not yet fully understood.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
@@ -15,10 +17,9 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
             ExposedPropertyType.Float,
             ExposedPropertyType.Int,
         };
-        public override EventCategory category => EventCategory.MotionControl;
-        
     }
-    
+
+
     public class RootAfterMovementParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
         public override MatchRule[] matchRules => new MatchRule[]

@@ -8,9 +8,12 @@ namespace DivineDragon.EngageAnimationEvents
     public class WeaponTrailEnd : ParsedEngageAnimationEvent
     {
         public override string displayName => "Weapon Trail End";
+
         public override EventCategory category => EventCategory.WeaponControl;
-        public override string Explanation => "Signals the end of a weapon trail effect.";
-        public override string Summary => "Weapon trail end event.";
+
+        public override string Summary { get; } = "Weapon trail end event.";
+
+        public override string Explanation { get; } = "Signals the end of a weapon trail effect.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
 
@@ -29,6 +32,7 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
     }
+
 
     public class WeaponTrailEndParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

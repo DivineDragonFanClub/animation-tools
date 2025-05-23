@@ -7,13 +7,15 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class ShootingEvent : ParsedEngageAnimationEvent
     {
-        public override EventCategory category => EventCategory.AttackSpecifics;
-        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
         public override string displayName => "Shooting Event";
-        
+
+        public override EventCategory category => EventCategory.AttackSpecifics;
+
+        public override string Summary { get; } = "Shooting event.";
+
         public override string Explanation { get; } = "Not yet investigated. Likely related to the moment a ranged attack is made.";
-        
-        public override string Summary => "Shooting event.";
+
+        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
 
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {
@@ -28,6 +30,7 @@ namespace DivineDragon.EngageAnimationEvents
             }
         }
     }
+
 
     public class ShootingEventParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {

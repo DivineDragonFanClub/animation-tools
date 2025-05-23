@@ -7,12 +7,13 @@ namespace DivineDragon.EngageAnimationEvents
 {
     public class WeaponTrailBegin : ParsedEngageAnimationEvent
     {
-        public override EventCategory category => EventCategory.WeaponControl;
         public override string displayName => "Weapon Trail Begin";
 
-        public override string Explanation =>
-            "A Generic Object PrefetchedCurve_Bridge is expected to be present in the event list with the string parameter 'PC'. The float and int parameters have unknown purposes.";
+        public override EventCategory category => EventCategory.WeaponControl;
+
         public override string Summary => $"Float: {backingAnimationEvent.floatParameter}, Int: {backingAnimationEvent.intParameter}";
+
+        public override string Explanation { get; } = "A Generic Object PrefetchedCurve_Bridge is expected to be present in the event list with the string parameter 'PC'. The float and int parameters have unknown purposes.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
@@ -162,8 +163,7 @@ namespace DivineDragon.EngageAnimationEvents
             Graphics.DrawMeshNow(quadMesh, Matrix4x4.identity);
         }
     }
-    
-    
+
 
     public class WeaponTrailBeginParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
