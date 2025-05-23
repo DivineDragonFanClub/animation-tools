@@ -8,7 +8,7 @@ namespace DivineDragon.EngageAnimationEvents
     {
         public override string displayName => "Look At Rate";
 
-        public override EventCategory category => EventCategory.Unknown;
+        public override EventCategory category => EventCategory.Uncategorized;
 
         public override string Summary { get; } = "Not yet investigated.";
 

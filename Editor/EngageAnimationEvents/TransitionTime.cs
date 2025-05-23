@@ -8,7 +8,7 @@ namespace DivineDragon.EngageAnimationEvents
     {
         public override string displayName => "Transition Time";
 
-        public override EventCategory category => EventCategory.Unknown;
+        public override EventCategory category => EventCategory.Uncategorized;
 
         public override string Summary => $"{backingAnimationEvent.floatParameter}";
 

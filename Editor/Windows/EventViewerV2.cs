@@ -114,12 +114,71 @@ namespace DivineDragon.Windows
             }
 
             root.Clear();
+            
+            // Create a container for top controls (Force Refresh and Search)
+            var topControlsContainer = new VisualElement()
+            {
+                style =
+                {
+                    flexDirection = FlexDirection.Column,
+                    height = 75,
+                }
+            };
+            
             var forceRefreshButton = new Button(() => { UpdateInspector(scrollView); })
             {
                 text = "Force Refresh",
                 tooltip = "Force a refresh of the event list in case it bugs out"
             };
-            root.Add(forceRefreshButton);
+            topControlsContainer.Add(forceRefreshButton);
+
+            // Add search field right after Force Refresh button
+            searchField = new TextField("Search");
+            searchField.labelElement.style.minWidth = 50;
+            searchField.labelElement.style.width = 50;
+            
+            // Create a container for search field and clear button
+            var searchContainer = new VisualElement()
+            {
+                style =
+                {
+                    flexDirection = FlexDirection.Row,
+                }
+            };
+            
+            searchField.style.flexGrow = 3;
+            searchContainer.Add(searchField);
+            
+            // Add clear button
+            var clearButton = new Button(() =>
+            {
+                searchField.value = "";
+                FilterEventsList("");
+            })
+            {
+                text = "×",
+                tooltip = "Clear search",
+                style =
+                {
+                    width = 20,
+                    height = 20,
+                    marginLeft = 2,
+                    fontSize = 18,
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                    paddingTop = 0,
+                    paddingBottom = 0,
+                    paddingLeft = 0,
+                    paddingRight = 0
+                }
+            };
+            
+            // Disable clear button when search is empty
+            clearButton.SetEnabled(!string.IsNullOrEmpty(searchField.value));
+            
+            searchContainer.Add(clearButton);
+            
+            topControlsContainer.Add(searchContainer);
+            root.Add(topControlsContainer);
 
             scrollView = new VisualElement();
 
@@ -128,6 +187,75 @@ namespace DivineDragon.Windows
             AnimationClipWatcher.OnClipEventsChanged += OnClipChanged;
             Undo.undoRedoPerformed += UpdateInspectorCall;
             UpdateInspector(scrollView);
+            
+            // Store reference to clear button for enabling/disabling
+            var clearBtn = searchContainer.Q<Button>();
+            
+            // Set up search field callback after UpdateInspector
+            searchField.RegisterValueChangedCallback(evt =>
+            {
+                if (listView != null)
+                {
+                    FilterEventsList(evt.newValue);
+                }
+                // Enable/disable clear button based on search text
+                if (clearBtn != null)
+                {
+                    clearBtn.SetEnabled(!string.IsNullOrEmpty(evt.newValue));
+                }
+            });
+        }
+
+        private string currentSearchTerm = "";
+
+        private void FilterEventsList(string searchTerm)
+        {
+            currentSearchTerm = searchTerm;
+            
+            var allEvents = AnimationClipWatcher.GetParsedEvents(getAttachedClip());
+            
+            if (string.IsNullOrEmpty(searchTerm))
+            {
+                listView.itemsSource = allEvents;
+            }
+            else
+            {
+                var lowerSearchTerm = searchTerm.ToLower();
+                var filteredEvents = allEvents.Where(evt =>
+                {
+                    // Check display name
+                    if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check original name (backing function name)
+                    if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check function name parameter
+                    if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check string parameter
+                    if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                        evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check summary
+                    if (!string.IsNullOrEmpty(evt.Summary) &&
+                        evt.Summary.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check time as string
+                    if (evt.backingAnimationEvent.time.ToString("F3").Contains(searchTerm))
+                        return true;
+
+                    return false;
+                }).ToList();
+                
+                listView.itemsSource = filteredEvents;
+            }
+            
+            listView.Refresh();
         }
 
         private void OnClipChanged(AnimationClip changedClip, HashSet<string> addedEventUuids)
@@ -135,14 +263,52 @@ namespace DivineDragon.Windows
             if (changedClip == getAttachedClip())
             {
                 var latestParsedEvents = AnimationClipWatcher.GetParsedEvents(changedClip);
-                listView.itemsSource = latestParsedEvents;
+                
+                // Apply current search filter if any
+                var filteredEvents = latestParsedEvents;
+                if (!string.IsNullOrEmpty(currentSearchTerm))
+                {
+                    var lowerSearchTerm = currentSearchTerm.ToLower();
+                    filteredEvents = latestParsedEvents.Where(evt =>
+                    {
+                        // Check display name
+                        if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                            return true;
+
+                        // Check original name (backing function name)
+                        if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                            return true;
+
+                        // Check function name parameter
+                        if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                            return true;
+
+                        // Check string parameter
+                        if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                            evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                            return true;
+
+                        // Check summary
+                        if (!string.IsNullOrEmpty(evt.Summary) &&
+                            evt.Summary.ToLower().Contains(lowerSearchTerm))
+                            return true;
+
+                        // Check time as string
+                        if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
+                            return true;
+
+                        return false;
+                    }).ToList();
+                }
+                
+                listView.itemsSource = filteredEvents;
 
                 // If exactly one new event was added, select and scroll to it
                 if (addedEventUuids.Count == 1)
                 {
                     var newUuid = addedEventUuids.First();
                     selectedEvents = new List<string> { newUuid };
-                    int newIndex = latestParsedEvents.FindIndex(item => item.Uuid == newUuid);
+                    int newIndex = filteredEvents.FindIndex(item => item.Uuid == newUuid);
                     listView.selectedIndex = newIndex;
                     if (newIndex != -1)
                     {
@@ -152,7 +318,7 @@ namespace DivineDragon.Windows
                 else if (selectedEvents.Count != 0)
                 {
                     // Try to preserve selection if possible
-                    listView.selectedIndex = latestParsedEvents.FindIndex(item => item.Uuid == selectedEvents[0]);
+                    listView.selectedIndex = filteredEvents.FindIndex(item => item.Uuid == selectedEvents[0]);
                 }
 
                 listView.Refresh();
@@ -161,6 +327,7 @@ namespace DivineDragon.Windows
         }
 
         private ListView listView;
+        private TextField searchField;
 
         public void UpdateInspectorCall()
         {
@@ -282,11 +449,47 @@ namespace DivineDragon.Windows
             };
             topControls.Add(developerModeButton);
 
-            // Get events and filter by display name
-            var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+            // Get events - apply current search filter if any
+            var allEvents = AnimationClipWatcher.GetParsedEvents(currentClip);
+            var eventsToShow = allEvents;
+            
+            if (!string.IsNullOrEmpty(currentSearchTerm))
+            {
+                var lowerSearchTerm = currentSearchTerm.ToLower();
+                eventsToShow = allEvents.Where(evt =>
+                {
+                    // Check display name
+                    if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check original name (backing function name)
+                    if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check function name parameter
+                    if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check string parameter
+                    if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                        evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check summary
+                    if (!string.IsNullOrEmpty(evt.Summary) &&
+                        evt.Summary.ToLower().Contains(lowerSearchTerm))
+                        return true;
+
+                    // Check time as string
+                    if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
+                        return true;
+
+                    return false;
+                }).ToList();
+            }
 
             // Create ListView
-            listView = new ListView(events, 45, MakeEventItem, BindEventItem);
+            listView = new ListView(eventsToShow, 45, MakeEventItem, BindEventItem);
             listView.selectionType = SelectionType.Single;
             listView.style.flexGrow = 1;
 
@@ -320,7 +523,7 @@ namespace DivineDragon.Windows
             if (selectedEvents.Count != 0)
             {
                 // find the index of the selected event in the filtered events
-                listView.selectedIndex = events.FindIndex(item => item.Uuid == selectedEvents[0]);
+                listView.selectedIndex = eventsToShow.FindIndex(item => item.Uuid == selectedEvents[0]);
             }
 
 
@@ -872,13 +1075,9 @@ namespace DivineDragon.Windows
             float currentTime = editor.time;
             AnimationClip currentClip = getAttachedClip();
 
-            // Get filtered events
-            var events = AnimationClipWatcher.GetParsedEvents(currentClip);
-
-            // filter not yet implemented.
-            var filteredEvents = events;
-
-            if (index >= filteredEvents.Count) return;
+            // Get the current filtered events from the ListView's itemsSource
+            var filteredEvents = listView.itemsSource as List<ParsedEngageAnimationEvent>;
+            if (filteredEvents == null || index >= filteredEvents.Count) return;
 
             var item = filteredEvents[index];
 
