@@ -116,28 +116,42 @@ namespace DivineDragon.Windows
                     // Skip empty categories
                     if (eventParsers.Count == 0) continue;
                     
-                    var categoryContainer = new Foldout
+                    // Create a container for the category
+                    var categoryContainer = new VisualElement
                     {
-                        text = category.GetDescription(),
-                        value = !string.IsNullOrEmpty(searchTerm) ? true : EditorPrefs.GetBool($"CreateAnimationEventPanel_Foldout_{category}", true),
                         style =
                         {
-                            // set margins for the category container
-                            marginTop = 5,
-                            marginBottom = 5,
+                            marginTop = 8,
+                            marginBottom = 2,
                             marginLeft = 10,
                             marginRight = 10
                         }
                     };
                     
-                    // Only save foldout state when not searching
-                    if (string.IsNullOrEmpty(searchTerm))
+                    // Create a subtle section header
+                    var headerLabel = new Label(category.GetDescription())
                     {
-                        categoryContainer.RegisterValueChangedCallback(evt =>
+                        style =
                         {
-                            EditorPrefs.SetBool($"CreateAnimationEventPanel_Foldout_{category}", evt.newValue);
-                        });
-                    }
+                            fontSize = 12,
+                            unityFontStyleAndWeight = FontStyle.Bold,
+                            color = new Color(0.7f, 0.7f, 0.7f, 1f),
+                            marginBottom = 5,
+                            paddingBottom = 2,
+                            borderBottomWidth = 1,
+                            borderBottomColor = new Color(0.3f, 0.3f, 0.3f, 0.3f)
+                        }
+                    };
+                    categoryContainer.Add(headerLabel);
+
+                    // Create a container for the event buttons
+                    var eventsContainer = new VisualElement
+                    {
+                        style =
+                        {
+                            paddingLeft = 5
+                        }
+                    };
 
                     foreach (var eventParser in eventParsers)
                     {
@@ -148,9 +162,18 @@ namespace DivineDragon.Windows
                         {
                             text = eventParser.sampleParsedEvent.displayName,
                             tooltip = eventParser.sampleParsedEvent.Explanation,
+                            style =
+                            {
+                                marginTop = 1,
+                                marginBottom = 1,
+                                paddingTop = 2,
+                                paddingBottom = 2
+                            }
                         };
-                        categoryContainer.Add(eventButton);
+                        eventsContainer.Add(eventButton);
                     }
+                    
+                    categoryContainer.Add(eventsContainer);
                     scrollable.Add(categoryContainer);
                 }
             }
