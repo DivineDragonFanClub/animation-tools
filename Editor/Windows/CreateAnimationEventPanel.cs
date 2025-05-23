@@ -50,21 +50,11 @@ namespace DivineDragon.Windows
 
         public void CreateAnimationEventPanelUI(VisualElement myInspector)
         {
-            // Add search field at the top
-            var searchField = new TextField("Search Events")
-            {
-                style =
-                {
-                    marginBottom = 10,
-                    marginLeft = 10,
-                    marginRight = 10,
-                    marginTop = 10
-                }
-            };
-            
+            // Create the scrollable view first
             var scrollable = new ScrollView();
-
-            void RebuildEventList(string searchTerm = "")
+            
+            // Declare RebuildEventList function
+            Action<string> RebuildEventList = (string searchTerm) =>
             {
                 scrollable.Clear();
                 
@@ -79,6 +69,17 @@ namespace DivineDragon.Windows
                         
                         // Check display name
                         if (e.sampleParsedEvent.displayName.ToLower().Contains(lowerSearchTerm))
+                            return true;
+                            
+                        // Check explanation/tooltip
+                        if (!string.IsNullOrEmpty(e.sampleParsedEvent.Explanation) && 
+                            e.sampleParsedEvent.Explanation.ToLower().Contains(lowerSearchTerm))
+                            return true;
+                            
+                        // Check category description
+                        var categoryDescription = e.sampleParsedEvent.category.GetDescription();
+                        if (!string.IsNullOrEmpty(categoryDescription) && 
+                            categoryDescription.ToLower().Contains(lowerSearchTerm))
                             return true;
                             
                         // Check Japanese names from match rules
@@ -176,18 +177,68 @@ namespace DivineDragon.Windows
                     categoryContainer.Add(eventsContainer);
                     scrollable.Add(categoryContainer);
                 }
-            }
+            };
+            
+            // Create a container for search field and clear button
+            var searchContainer = new VisualElement()
+            {
+                style =
+                {
+                    flexDirection = FlexDirection.Row,
+                    height = 20,
+                    marginBottom = 5,
+                    marginTop = 5
+                }
+            };
+            
+            // Add search field
+            var searchField = new TextField("Search");
+            searchField.labelElement.style.minWidth = 50;
+            searchField.labelElement.style.width = 50;
+            searchField.style.flexGrow = 3;
+            searchField.style.height = 20;
+            searchContainer.Add(searchField);
+            
+            // Add clear button
+            var clearButton = new Button(() =>
+            {
+                searchField.value = "";
+                RebuildEventList("");
+            })
+            {
+                text = "×",
+                tooltip = "Clear search",
+                style =
+                {
+                    width = 20,
+                    height = 20,
+                    marginLeft = 2,
+                    fontSize = 18,
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                    paddingTop = 0,
+                    paddingBottom = 0,
+                    paddingLeft = 0,
+                    paddingRight = 0
+                }
+            };
+            
+            // Disable clear button when search is empty
+            clearButton.SetEnabled(!string.IsNullOrEmpty(searchField.value));
+            
+            searchContainer.Add(clearButton);
             
             // Set up search functionality
             searchField.RegisterValueChangedCallback(evt =>
             {
                 RebuildEventList(evt.newValue);
+                // Enable/disable clear button based on search text
+                clearButton.SetEnabled(!string.IsNullOrEmpty(evt.newValue));
             });
             
             // Initial build
-            RebuildEventList();
+            RebuildEventList("");
             
-            myInspector.Add(searchField);
+            myInspector.Add(searchContainer);
             myInspector.Add(scrollable);
         }
         
