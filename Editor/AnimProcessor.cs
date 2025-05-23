@@ -202,17 +202,29 @@ namespace DivineDragon
 
         public enum EventCategory
         {
+            [System.ComponentModel.Description("Foot Left")]
             FootLeft,
+            [System.ComponentModel.Description("Foot Right")]
             FootRight,
+            [System.ComponentModel.Description("Sound")]
             Sound,
+            [System.ComponentModel.Description("Attacking Character")]
             AttackingCharacter,
+            [System.ComponentModel.Description("Particle")]
             Particle,
+            [System.ComponentModel.Description("Camera")]
             Camera,
+            [System.ComponentModel.Description("Cancels")]
             Cancels,
+            [System.ComponentModel.Description("Attack Specifics")]
             AttackSpecifics,
+            [System.ComponentModel.Description("Opponent")]
             Opponent,
+            [System.ComponentModel.Description("Weapon Control")]
             WeaponControl,
+            [System.ComponentModel.Description("Motion Control")]
             MotionControl,
+            [System.ComponentModel.Description("Uncategorized")]
             Uncategorized
         }
 
