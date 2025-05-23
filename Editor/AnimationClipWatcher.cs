@@ -205,11 +205,12 @@ namespace DivineDragon
         }
 
         public static void ReplaceEventProgrammatically(AnimationClip clip, ParsedEngageAnimationEvent eventToEdit,
-            AnimationEvent newEvent)
+            AnimationEvent newEvent, string undoOperationName)
         {
             if (clip == null || eventToEdit == null || newEvent == null)
                 return;
 
+            Undo.RegisterCompleteObjectUndo(clip, undoOperationName);
         
             AnimationEvent[] currentEvents = clip.events;
             bool eventFound = false;
@@ -242,11 +243,12 @@ namespace DivineDragon
     
         }
 
-        public static void DeleteEventProgrammatically(AnimationClip clip, ParsedEngageAnimationEvent eventToDelete)
+        public static void DeleteEventProgrammatically(AnimationClip clip, ParsedEngageAnimationEvent eventToDelete, string undoOperationName)
         {
             if (clip == null || eventToDelete == null)
                 return;
 
+            Undo.RegisterCompleteObjectUndo(clip, undoOperationName);
         
             AnimationEvent[] currentEvents = clip.events;
             List<AnimationEvent> updatedEvents = new List<AnimationEvent>(currentEvents.Length - 1);
@@ -273,11 +275,13 @@ namespace DivineDragon
     
         }
 
-        public static void AddEventProgrammatically(AnimationClip clip, AnimationEvent eventToAdd)
+        public static void AddEventProgrammatically(AnimationClip clip, AnimationEvent eventToAdd, string undoOperationName)
         {
             if (clip == null || eventToAdd == null)
                 return;
         
+            Undo.RegisterCompleteObjectUndo(clip, undoOperationName);
+            
             AnimationEvent[] currentEvents = clip.events;
             AnimationEvent[] updatedEvents = new AnimationEvent[currentEvents.Length + 1];
 

@@ -193,13 +193,12 @@ namespace DivineDragon.Windows
         
         private void addAnimationEvent(AnimationClip currentClip, float time, string animType)
         {
-            Undo.RegisterCompleteObjectUndo(currentClip, "Add Animation Event");
             var parser = AnimationEventParser.displayNameToParser[animType];
 
             AnimationEvent newEvent = parser.Create();
             newEvent.time = time;
             // In the future: set meaningful defaults in the parser.Create() method?
-            AnimationClipWatcher.AddEventProgrammatically(currentClip, newEvent);
+            AnimationClipWatcher.AddEventProgrammatically(currentClip, newEvent, "Add Animation Event");
         }
     }
 }

@@ -437,8 +437,7 @@ namespace DivineDragon.Windows
             {
                 var clone = selectedEventItem.backingAnimationEvent.Clone();
                 clone.time = editor.time;
-                Undo.RegisterCompleteObjectUndo(currentClip, $"Moving Event to Playhead");
-                AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, selectedEventItem, clone);
+                AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, selectedEventItem, clone, $"Moving Event to Playhead");
             })
             {
                 text = "Move Event to Playhead",
@@ -453,8 +452,7 @@ namespace DivineDragon.Windows
             {
                 var clone = selectedEventItem.backingAnimationEvent.Clone();
                 clone.time -= nudgeOneFrameTime;
-                Undo.RegisterCompleteObjectUndo(currentClip, $"Nudging Event Back");
-                AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, selectedEventItem, clone);
+                AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, selectedEventItem, clone, $"Nudging Event Back");
             })
             {
                 text = "◄ Nudge Back",
@@ -466,8 +464,7 @@ namespace DivineDragon.Windows
             {
                 var clone = selectedEventItem.backingAnimationEvent.Clone();
                 clone.time += nudgeOneFrameTime;
-                Undo.RegisterCompleteObjectUndo(currentClip, $"Nudging Event Forward");
-                AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, selectedEventItem, clone);
+                AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, selectedEventItem, clone, $"Nudging Event Forward");
             })
             {
                 text = "Nudge Forward ►",
@@ -510,8 +507,7 @@ namespace DivineDragon.Windows
 
             var specialEditor = selectedEventItem.MakeSpecialEditor((parsedEvent, animEvent) =>
             {
-                Undo.RegisterCompleteObjectUndo(currentClip, $"Saving ${parsedEvent.displayName} Event");
-                AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, parsedEvent, animEvent);
+                AnimationClipWatcher.ReplaceEventProgrammatically(currentClip, parsedEvent, animEvent, $"Saving ${parsedEvent.displayName} Event");
             }, events);
 
             if (specialEditor != null)
@@ -825,8 +821,7 @@ namespace DivineDragon.Windows
                     clone.time = targetEvent.backingAnimationEvent.time;
 
                     // Update the event
-                    Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Paste Event Data");
-                    AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), targetEvent, clone);
+                    AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), targetEvent, clone, "Paste Event Data");
                     Debug.Log("Pasted event data successfully");
                 }
             }
@@ -852,8 +847,7 @@ namespace DivineDragon.Windows
                     clone.time = targetEvent.backingAnimationEvent.time;
 
                     // Add the new event as a duplicate
-                    Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Paste Event Data as New");
-                    AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone);
+                    AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone, "Paste Event Data as New");
                     Debug.Log("Pasted event data successfully as new event");
                 }
             }
@@ -869,8 +863,7 @@ namespace DivineDragon.Windows
             var clone = sourceEvent.backingAnimationEvent.Clone();
             clone.time += 1f / 60f; // Offset by one frame
 
-            Undo.RegisterCompleteObjectUndo(getAttachedClip(), "Duplicate Event");
-            AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone);
+            AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone, "Duplicate Event");
         }
 
         private void BindEventItem(VisualElement element, int index)
@@ -952,8 +945,7 @@ namespace DivineDragon.Windows
             {
                 return;
             }
-            Undo.RegisterCompleteObjectUndo(currentClip, $"Deleting ${item.displayName} Event");
-            AnimationClipWatcher.DeleteEventProgrammatically(currentClip, item);
+            AnimationClipWatcher.DeleteEventProgrammatically(currentClip, item, $"Deleting ${item.displayName} Event");
         }
 
         private void BindFloatField(FloatField floatField, ParsedEngageAnimationEvent parsedEvent)
@@ -963,9 +955,8 @@ namespace DivineDragon.Windows
             {
                 var clone = parsedEvent.backingAnimationEvent.Clone();
                 clone.floatParameter = evt.newValue;
-                Undo.RegisterCompleteObjectUndo(getAttachedClip(),
+                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone,
                     $"Changing float value for ${parsedEvent.displayName} Event to {evt.newValue}");
-                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
         }
 
@@ -976,9 +967,8 @@ namespace DivineDragon.Windows
             {
                 var clone = parsedEvent.backingAnimationEvent.Clone();
                 clone.functionName = evt.newValue;
-                Undo.RegisterCompleteObjectUndo(getAttachedClip(),
+                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone,
                     $"Changing function name value for ${parsedEvent.displayName} Event to {evt.newValue}");
-                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
         }
 
@@ -989,9 +979,8 @@ namespace DivineDragon.Windows
             {
                 var clone = parsedEvent.backingAnimationEvent.Clone();
                 clone.stringParameter = evt.newValue;
-                Undo.RegisterCompleteObjectUndo(getAttachedClip(),
+                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone,
                     $"Changing string value for ${parsedEvent.displayName} Event to {evt.newValue}");
-                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
         }
 
@@ -1002,9 +991,8 @@ namespace DivineDragon.Windows
             {
                 var clone = parsedEvent.backingAnimationEvent.Clone();
                 clone.intParameter = evt.newValue;
-                Undo.RegisterCompleteObjectUndo(getAttachedClip(),
+                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone,
                     $"Changing int value for ${parsedEvent.displayName} Event to {evt.newValue}");
-                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
         }
 
@@ -1015,9 +1003,8 @@ namespace DivineDragon.Windows
             {
                 var clone = parsedEvent.backingAnimationEvent.Clone();
                 clone.objectReferenceParameter = evt.newValue;
-                Undo.RegisterCompleteObjectUndo(getAttachedClip(),
+                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone,
                     $"Changing object reference for ${parsedEvent.displayName} Event to {evt.newValue}");
-                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
         }
         
@@ -1028,9 +1015,8 @@ namespace DivineDragon.Windows
             {
                 var clone = parsedEvent.backingAnimationEvent.Clone();
                 clone.time = evt.newValue;
-                Undo.RegisterCompleteObjectUndo(getAttachedClip(),
+                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone,
                     $"Changing time for ${parsedEvent.displayName} Event to {evt.newValue}");
-                AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), parsedEvent, clone);
             });
         }
 

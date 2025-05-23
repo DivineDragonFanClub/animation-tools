@@ -88,8 +88,7 @@ namespace DivineDragon.Windows
                         animEvent.functionName = "汎用Object"; // Generic Object
                         animEvent.stringParameter = "PC";
                         animEvent.objectReferenceParameter = asset;
-                        Undo.RegisterCompleteObjectUndo(currentClip, "Add PrefetchedCurve_Bridge Event");
-                        DivineDragon.AnimationClipWatcher.AddEventProgrammatically(currentClip, animEvent);
+                        DivineDragon.AnimationClipWatcher.AddEventProgrammatically(currentClip, animEvent, "Add PrefetchedCurve_Bridge Event");
                         Debug.Log($"Added Generic Object event with PrefetchedCurve_Bridge to {currentClip.name}");
                     }
                     else
