@@ -113,71 +113,19 @@ namespace DivineDragon.Windows
             }
 
             root.Clear();
-            
-            // Create a container for top controls (Force Refresh and Search)
-            var topControlsContainer = new VisualElement()
-            {
-                style =
-                {
-                    flexDirection = FlexDirection.Column,
-                    height = 75,
-                }
-            };
-            
+
             var forceRefreshButton = new Button(() => { UpdateInspector(scrollView); })
             {
                 text = "Force Refresh",
-                tooltip = "Force a refresh of the event list in case it bugs out"
-            };
-            topControlsContainer.Add(forceRefreshButton);
-
-            // Add search field right after Force Refresh button
-            searchField = new TextField("Search");
-            searchField.labelElement.style.minWidth = 50;
-            searchField.labelElement.style.width = 50;
-            
-            // Create a container for search field and clear button
-            var searchContainer = new VisualElement()
-            {
+                tooltip = "Force a refresh of the event list in case it bugs out",
                 style =
                 {
-                    flexDirection = FlexDirection.Row,
+                    marginBottom = 5,
+                    marginLeft = 5,
+                    marginRight = 5,
                 }
             };
-            
-            searchField.style.flexGrow = 3;
-            searchContainer.Add(searchField);
-            
-            // Add clear button
-            var clearButton = new Button(() =>
-            {
-                searchField.value = "";
-                FilterEventsList("");
-            })
-            {
-                text = "×",
-                tooltip = "Clear search",
-                style =
-                {
-                    width = 20,
-                    height = 20,
-                    marginLeft = 2,
-                    fontSize = 18,
-                    unityTextAlign = TextAnchor.MiddleCenter,
-                    paddingTop = 0,
-                    paddingBottom = 0,
-                    paddingLeft = 0,
-                    paddingRight = 0
-                }
-            };
-            
-            // Disable clear button when search is empty
-            clearButton.SetEnabled(!string.IsNullOrEmpty(searchField.value));
-            
-            searchContainer.Add(clearButton);
-            
-            topControlsContainer.Add(searchContainer);
-            root.Add(topControlsContainer);
+            root.Add(forceRefreshButton);
 
             scrollView = new VisualElement();
 
@@ -186,23 +134,6 @@ namespace DivineDragon.Windows
             AnimationClipWatcher.OnClipEventsChanged += OnClipChanged;
             Undo.undoRedoPerformed += UpdateInspectorCall;
             UpdateInspector(scrollView);
-            
-            // Store reference to clear button for enabling/disabling
-            var clearBtn = searchContainer.Q<Button>();
-            
-            // Set up search field callback after UpdateInspector
-            searchField.RegisterValueChangedCallback(evt =>
-            {
-                if (listView != null)
-                {
-                    FilterEventsList(evt.newValue);
-                }
-                // Enable/disable clear button based on search text
-                if (clearBtn != null)
-                {
-                    clearBtn.SetEnabled(!string.IsNullOrEmpty(evt.newValue));
-                }
-            });
         }
 
         private string currentSearchTerm = "";
@@ -478,7 +409,62 @@ namespace DivineDragon.Windows
             var rootContainer = new VisualElement();
             rootContainer.style.flexGrow = 1;
 
-            // Top section for controls
+            // Create container for search field
+            var searchControls = new VisualElement();
+            searchControls.style.flexDirection = FlexDirection.Row;
+            searchControls.style.marginBottom = 5;
+            searchControls.style.marginLeft = 5;
+            searchControls.style.marginRight = 5;
+
+            // Add search field to search controls
+            searchField = new TextField("Search");
+            searchField.labelElement.style.minWidth = 50;
+            searchField.labelElement.style.width = 50;
+            searchField.style.flexGrow = 1;
+            
+            searchControls.Add(searchField);
+            
+            // Add clear button
+            var clearButton = new Button(() =>
+            {
+                searchField.value = "";
+                FilterEventsList("");
+            })
+            {
+                text = "×",
+                tooltip = "Clear search",
+                style =
+                {
+                    width = 20,
+                    height = 20,
+                    marginLeft = 2,
+                    fontSize = 18,
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                    paddingTop = 0,
+                    paddingBottom = 0,
+                    paddingLeft = 0,
+                    paddingRight = 0
+                }
+            };
+            
+            // Disable clear button when search is empty
+            clearButton.SetEnabled(!string.IsNullOrEmpty(currentSearchTerm));
+            
+            searchControls.Add(clearButton);
+            
+            // Set up search field callback
+            searchField.value = currentSearchTerm;
+            searchField.RegisterValueChangedCallback(evt =>
+            {
+                if (listView != null)
+                {
+                    FilterEventsList(evt.newValue);
+                }
+                // Enable/disable clear button based on search text
+                clearButton.SetEnabled(!string.IsNullOrEmpty(evt.newValue));
+            });
+
+            // Top section for toggle controls
             var topControls = new VisualElement();
             topControls.style.flexDirection = FlexDirection.Row;
             topControls.style.marginBottom = 5;
@@ -668,6 +654,7 @@ namespace DivineDragon.Windows
             UpdateOperationsPanel(operationsPanel, selectedEvents, currentClip, editor);
 
             // Add all sections to root container
+            rootContainer.Add(searchControls);
             rootContainer.Add(topControls);
             twoPlaneSplitView = new TwoPaneSplitView(1, 250, TwoPaneSplitViewOrientation.Vertical);
             // take up maximum height without flexGrow
