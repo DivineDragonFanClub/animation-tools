@@ -208,20 +208,26 @@ namespace DivineDragon.Windows
 
         private string currentSearchTerm = "";
 
+        private HelpBox noEventsHelpBox;
+        private VisualElement emptyStateContainer;
+        private Button emptyStatePasteButton;
+        private string lastClipboardContent = "";
+        
         private void FilterEventsList(string searchTerm)
         {
             currentSearchTerm = searchTerm;
             
             var allEvents = AnimationClipWatcher.GetParsedEvents(getAttachedClip());
+            List<ParsedEngageAnimationEvent> eventsToShow;
             
             if (string.IsNullOrEmpty(searchTerm))
             {
-                listView.itemsSource = allEvents;
+                eventsToShow = allEvents;
             }
             else
             {
                 var lowerSearchTerm = searchTerm.ToLower();
-                var filteredEvents = allEvents.Where(evt =>
+                eventsToShow = allEvents.Where(evt =>
                 {
                     // Check display name
                     if (evt.displayName.ToLower().Contains(lowerSearchTerm))
@@ -251,11 +257,38 @@ namespace DivineDragon.Windows
 
                     return false;
                 }).ToList();
-                
-                listView.itemsSource = filteredEvents;
             }
             
+            listView.itemsSource = eventsToShow;
             listView.Refresh();
+            
+            // Update empty state visibility and paste button
+            if (emptyStateContainer != null)
+            {
+                // Only show empty state container if there are actually no events in the clip
+                bool clipIsActuallyEmpty = allEvents.Count == 0;
+                emptyStateContainer.style.display = eventsToShow.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
+                
+                // Hide paste button if we're just filtering
+                if (emptyStatePasteButton != null)
+                {
+                    emptyStatePasteButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
+                }
+            }
+            
+            // Update help box message
+            if (noEventsHelpBox != null)
+            {
+                // Update message based on whether we're filtering
+                if (eventsToShow.Count == 0 && !string.IsNullOrEmpty(searchTerm))
+                {
+                    noEventsHelpBox.text = "No events match your search.";
+                }
+                else if (eventsToShow.Count == 0)
+                {
+                    noEventsHelpBox.text = "No events in this clip.";
+                }
+            }
         }
 
         private void OnClipChanged(AnimationClip changedClip, HashSet<string> addedEventUuids)
@@ -323,6 +356,33 @@ namespace DivineDragon.Windows
 
                 listView.Refresh();
                 UpdateOperationsPanel(operationsPanel, selectedEvents, changedClip, GetAnimationWindow());
+                
+                // Update empty state visibility and paste button
+                if (emptyStateContainer != null)
+                {
+                    emptyStateContainer.style.display = filteredEvents.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
+                    
+                    // Only show paste button if clip is actually empty
+                    if (emptyStatePasteButton != null)
+                    {
+                        bool clipIsActuallyEmpty = latestParsedEvents.Count == 0;
+                        emptyStatePasteButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
+                    }
+                }
+                
+                // Update help box message
+                if (noEventsHelpBox != null)
+                {
+                    // Update message based on whether we're filtering
+                    if (filteredEvents.Count == 0 && !string.IsNullOrEmpty(currentSearchTerm))
+                    {
+                        noEventsHelpBox.text = "No events match your search.";
+                    }
+                    else if (filteredEvents.Count == 0)
+                    {
+                        noEventsHelpBox.text = "No events in this clip.";
+                    }
+                }
             }
         }
 
@@ -372,6 +432,30 @@ namespace DivineDragon.Windows
                 listView.Refresh();
                 previousTime = CurrentTime;
             }
+            
+            // Check clipboard changes for paste button
+            CheckClipboardForPasteButton();
+        }
+        
+        private void CheckClipboardForPasteButton()
+        {
+            if (emptyStatePasteButton == null) return;
+            
+            try
+            {
+                var currentClipboard = EditorGUIUtility.systemCopyBuffer;
+                if (currentClipboard != lastClipboardContent)
+                {
+                    lastClipboardContent = currentClipboard;
+                    // Update paste button state
+                    bool canPaste = CanPasteEvent() || CanPasteMultipleEvents();
+                    emptyStatePasteButton.SetEnabled(canPaste);
+                }
+            }
+            catch
+            {
+                // Ignore clipboard access errors
+            }
         }
 
         public void UpdateInspector(VisualElement myInspector)
@@ -380,6 +464,14 @@ namespace DivineDragon.Windows
             myInspector.Clear();
             EditorApplication.update += handleScrollInTandem;
             EditorApplication.update += HandleRefreshTick;
+            
+            // Load custom stylesheet
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.divinedragon.animation_tools/Editor/AnimationTools.uss");
+            Debug.Log("Loaded stylesheet: " + styleSheet);
+            if (styleSheet != null)
+            {
+                myInspector.styleSheets.Add(styleSheet);
+            }
 
             var editor = GetAnimationWindow();
             AnimationClip currentClip = getAttachedClip();
@@ -490,8 +582,64 @@ namespace DivineDragon.Windows
 
             // Create ListView
             listView = new ListView(eventsToShow, 45, MakeEventItem, BindEventItem);
-            listView.selectionType = SelectionType.Single;
+            listView.selectionType = SelectionType.Multiple;
             listView.style.flexGrow = 1;
+            
+            // Create container for empty state UI
+            emptyStateContainer = new VisualElement();
+            emptyStateContainer.style.display = eventsToShow.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            
+            // Show help box when no events
+            noEventsHelpBox = new HelpBox("No events in this clip.", HelpBoxMessageType.Info);
+            noEventsHelpBox.style.marginTop = 10;
+            noEventsHelpBox.style.marginLeft = 10;
+            noEventsHelpBox.style.marginRight = 10;
+            emptyStateContainer.Add(noEventsHelpBox);
+            
+            // Add paste button
+            emptyStatePasteButton = new Button(() =>
+            {
+                // Try to paste single event first
+                if (CanPasteEvent())
+                {
+                    var clipData = EditorGUIUtility.systemCopyBuffer;
+                    var singleEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
+                    if (singleEvent != null)
+                    {
+                        var newEvent = singleEvent.ToAnimationEvent();
+                        AnimationClipWatcher.AddEventProgrammatically(currentClip, newEvent, "Paste Event");
+                    }
+                }
+                // Try to paste multiple events
+                else if (CanPasteMultipleEvents())
+                {
+                    var clipData = EditorGUIUtility.systemCopyBuffer;
+                    var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                    if (eventList != null && eventList.events != null)
+                    {
+                        var eventsToPaste = eventList.events.Select(e => e.ToAnimationEvent()).ToList();
+                        foreach (var evt in eventsToPaste)
+                        {
+                            AnimationClipWatcher.AddEventProgrammatically(currentClip, evt, "Paste Events");
+                        }
+                    }
+                }
+            })
+            {
+                text = "Paste Events from Clipboard",
+                style =
+                {
+                    marginTop = 10,
+                    marginLeft = 10,
+                    marginRight = 10,
+                    height = 30
+                }
+            };
+            
+            // Enable/disable based on clipboard content
+            emptyStatePasteButton.SetEnabled(CanPasteEvent() || CanPasteMultipleEvents());
+            emptyStateContainer.Add(emptyStatePasteButton);
+            
 
             operationsPanel = new VisualElement();
             operationsPanel.style.flexDirection = FlexDirection.Column;
@@ -543,7 +691,13 @@ namespace DivineDragon.Windows
             // Set explicit height to fill available space
             twoPlaneSplitView.style.height = 1000;
 
-            twoPlaneSplitView.Add(listView);
+            // Create a container for the list view and help box
+            var listContainer = new VisualElement();
+            listContainer.style.flexGrow = 1;
+            listContainer.Add(emptyStateContainer);
+            listContainer.Add(listView);
+            
+            twoPlaneSplitView.Add(listContainer);
             twoPlaneSplitView.Add(operationsPanel);
 
             rootContainer.Add(twoPlaneSplitView);
@@ -561,17 +715,118 @@ namespace DivineDragon.Windows
             panel.Clear();
 
             bool hasSelection = selectedEvents.Count > 0;
+            bool hasMultipleSelection = selectedEvents.Count > 1;
 
             var events = AnimationClipWatcher.GetParsedEvents(currentClip);
-            var selectedEventItem = selectedEvents
-                .Select(uuid => events
-                    .FirstOrDefault(item => item.Uuid == uuid)).FirstOrDefault();
+            var selectedEventItems = selectedEvents
+                .Select(uuid => events.FirstOrDefault(item => item.Uuid == uuid))
+                .Where(item => item != null)
+                .ToList();
 
-            if (selectedEventItem == null)
+            if (selectedEventItems.Count == 0)
             {
                 panel.Add(new HelpBox("No event selected", HelpBoxMessageType.None));
                 return;
             }
+
+            // Handle multi-selection case
+            if (hasMultipleSelection)
+            {
+                var multiSelectLabel = new Label($"{selectedEventItems.Count} events selected")
+                {
+                    style =
+                    {
+                        unityFontStyleAndWeight = FontStyle.Bold,
+                        color = new StyleColor(Color.white),
+                        fontSize = 20,
+                        marginBottom = 10,
+                        paddingLeft = 5,
+                        paddingRight = 5
+                    }
+                };
+                panel.Add(multiSelectLabel);
+
+                // Multi-select controls
+                var multiSelectControls = new VisualElement()
+                {
+                    style = { flexDirection = FlexDirection.Row, marginBottom = 10 }
+                };
+
+                // Copy button
+                var copyButton = new Button(() =>
+                {
+                    CopyMultipleEventsToClipboard(selectedEventItems);
+                })
+                {
+                    text = "Copy Events",
+                    tooltip = "Copy selected events to clipboard"
+                };
+
+                // Delete button
+                var multiDeleteButton = new Button(() =>
+                {
+                    DeleteMultipleAnimationEvents(currentClip, selectedEventItems);
+                })
+                {
+                    text = "Delete Events",
+                    tooltip = "Delete selected events"
+                };
+                multiDeleteButton.AddToClassList("delete-button");
+
+                multiSelectControls.Add(copyButton);
+                multiSelectControls.Add(multiDeleteButton);
+
+                // Add spacing between buttons
+                foreach (var child in multiSelectControls.Children())
+                {
+                    child.style.marginLeft = 2;
+                    child.style.marginRight = 2;
+                }
+
+                panel.Add(multiSelectControls);
+
+                // Show summary of selected events
+                var summaryBox = new Box()
+                {
+                    style = { 
+                        marginTop = 10,
+                        paddingTop = 10,
+                        paddingBottom = 10,
+                        paddingLeft = 10,
+                        paddingRight = 10
+                    }
+                };
+                
+                var summaryLabel = new Label("Selected Events:")
+                {
+                    style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 5 }
+                };
+                summaryBox.Add(summaryLabel);
+
+                foreach (var evt in selectedEventItems.Take(10)) // Show max 10 events
+                {
+                    var eventSummary = new Label($"• {evt.displayName} at {evt.backingAnimationEvent.time:F3}s")
+                    {
+                        style = { fontSize = 11, marginLeft = 10 }
+                    };
+                    summaryBox.Add(eventSummary);
+                }
+
+                if (selectedEventItems.Count > 10)
+                {
+                    var moreLabel = new Label($"... and {selectedEventItems.Count - 10} more")
+                    {
+                        style = { fontSize = 11, marginLeft = 10, unityFontStyleAndWeight = FontStyle.Italic }
+                    };
+                    summaryBox.Add(moreLabel);
+                }
+
+                panel.Add(summaryBox);
+                return;
+            }
+
+            // Single selection - existing code continues
+            var selectedEventItem = selectedEventItems[0];
             var panelTitleContainer = new VisualElement();
             panelTitleContainer.style.flexDirection = FlexDirection.Row;
 
@@ -681,8 +936,7 @@ namespace DivineDragon.Windows
                 text = "Delete",
                 tooltip = hasSelection ? "Delete selected event" : "Select an event first"
             };
-
-            deleteButton.style.backgroundColor = new StyleColor(new Color(0.7f, 0.3f, 0.3f));
+            deleteButton.AddToClassList("delete-button");
             deleteButton.SetEnabled(hasSelection);
 
             // Add all buttons to panel
@@ -910,17 +1164,53 @@ namespace DivineDragon.Windows
 
             if (container?.userData is ParsedEngageAnimationEvent sourceEvent)
             {
-                // Add copy option
-                evt.menu.AppendAction("Copy Event", (a) => CopyEventToClipboard(sourceEvent));
-                evt.menu.AppendAction("Paste Over Event", (a) => PasteEventFromClipboard(sourceEvent),
-                    (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                // Add paste as new option
-                evt.menu.AppendAction("Paste As New Event", (a) => PasteEventFromClipboardAsNew(sourceEvent),
-                    (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                // Add duplicate option
-                evt.menu.AppendAction("Duplicate Event", (a) => DuplicateEvent(sourceEvent));
-                // Add delete option
-                evt.menu.AppendAction("Delete Event", (a) => DeleteAnimationEvent(getAttachedClip(), sourceEvent));
+                // Check if we have multiple selection
+                if (selectedEvents.Count > 1)
+                {
+                    // Multi-selection context menu
+                    evt.menu.AppendAction($"Copy {selectedEvents.Count} Events", (a) => 
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(getAttachedClip());
+                        var selectedItems = selectedEvents
+                            .Select(uuid => events.FirstOrDefault(e => e.Uuid == uuid))
+                            .Where(e => e != null)
+                            .ToList();
+                        CopyMultipleEventsToClipboard(selectedItems);
+                    });
+                    
+                    evt.menu.AppendAction("Paste Events Here", (a) => 
+                    {
+                        PasteMultipleEventsFromClipboard(getAttachedClip(), sourceEvent);
+                    },
+                    (a) => CanPasteMultipleEvents() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                    
+                    evt.menu.AppendAction($"Delete {selectedEvents.Count} Events", (a) => 
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(getAttachedClip());
+                        var selectedItems = selectedEvents
+                            .Select(uuid => events.FirstOrDefault(e => e.Uuid == uuid))
+                            .Where(e => e != null)
+                            .ToList();
+                        DeleteMultipleAnimationEvents(getAttachedClip(), selectedItems);
+                    });
+                }
+                else
+                {
+                    // Single selection context menu (existing code)
+                    evt.menu.AppendAction("Copy Event", (a) => CopyEventToClipboard(sourceEvent));
+                    evt.menu.AppendAction("Paste Over Event", (a) => PasteEventFromClipboard(sourceEvent),
+                        (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                    // Add paste as new option
+                    evt.menu.AppendAction("Paste As New Event", (a) => PasteEventFromClipboardAsNew(sourceEvent),
+                        (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                    // Add paste multiple events option
+                    evt.menu.AppendAction("Paste Multiple Events Here", (a) => PasteMultipleEventsFromClipboard(getAttachedClip(), sourceEvent),
+                        (a) => CanPasteMultipleEvents() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                    // Add duplicate option
+                    evt.menu.AppendAction("Duplicate Event", (a) => DuplicateEvent(sourceEvent));
+                    // Add delete option
+                    evt.menu.AppendAction("Delete Event", (a) => DeleteAnimationEvent(getAttachedClip(), sourceEvent));
+                }
             }
         }
 
@@ -1001,7 +1291,11 @@ namespace DivineDragon.Windows
             try
             {
                 var clipData = EditorGUIUtility.systemCopyBuffer;
-                return !string.IsNullOrEmpty(clipData) && clipData.Contains("functionName");
+                if (string.IsNullOrEmpty(clipData)) return false;
+                
+                // Try to parse as single event format
+                var singleEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
+                return singleEvent != null && !string.IsNullOrEmpty(singleEvent.functionName);
             }
             catch
             {
@@ -1067,6 +1361,95 @@ namespace DivineDragon.Windows
             clone.time += 1f / 60f; // Offset by one frame
 
             AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone, "Duplicate Event");
+        }
+
+        private void CopyMultipleEventsToClipboard(List<ParsedEngageAnimationEvent> events)
+        {
+            var serializedEvents = events.Select(evt => SerializableAnimationEvent.FromAnimationEvent(evt.backingAnimationEvent)).ToList();
+            var data = JsonUtility.ToJson(new SerializableAnimationEventList { events = serializedEvents }, true);
+            EditorGUIUtility.systemCopyBuffer = data;
+            Debug.Log($"Copied {events.Count} events to clipboard");
+        }
+
+        private bool CanPasteMultipleEvents()
+        {
+            try
+            {
+                var clipData = EditorGUIUtility.systemCopyBuffer;
+                if (string.IsNullOrEmpty(clipData)) return false;
+                
+                // Try to parse as multiple events format
+                var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                return eventList != null && eventList.events != null && eventList.events.Count > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void PasteMultipleEventsFromClipboard(AnimationClip clip, ParsedEngageAnimationEvent referenceEvent)
+        {
+            try
+            {
+                var clipData = EditorGUIUtility.systemCopyBuffer;
+                List<AnimationEvent> eventsToPaste = new List<AnimationEvent>();
+
+                // Only parse multiple events format
+                if (clipData.Contains("\"events\""))
+                {
+                    var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                    if (eventList != null && eventList.events != null)
+                    {
+                        eventsToPaste = eventList.events.Select(e => e.ToAnimationEvent()).ToList();
+                    }
+                }
+
+                if (eventsToPaste.Count > 0)
+                {
+                    // Offset times to start at reference event time
+                    float minTime = eventsToPaste.Min(e => e.time);
+                    float offset = referenceEvent.backingAnimationEvent.time - minTime;
+
+                    foreach (var evt in eventsToPaste)
+                    {
+                        var clone = evt.Clone();
+                        clone.time += offset;
+                        // TODO: this is inefficient as we will be parsing the resulting AnimationClip over and over again
+                        AnimationClipWatcher.AddEventProgrammatically(clip, clone, "Paste Multiple Events");
+                    }
+
+                    Debug.Log($"Pasted {eventsToPaste.Count} events");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to paste events: {ex.Message}");
+            }
+        }
+
+        private void DeleteMultipleAnimationEvents(AnimationClip clip, List<ParsedEngageAnimationEvent> events)
+        {
+            if (!EditorUtility.DisplayDialog(
+                "Delete Multiple Animation Events",
+                $"Are you sure you want to delete {events.Count} selected events?",
+                "Delete",
+                "Cancel"))
+            {
+                return;
+            }
+
+            foreach (var evt in events)
+            {
+                // TODO: this is inefficient as we will be parsing the resulting AnimationClip over and over again
+                AnimationClipWatcher.DeleteEventProgrammatically(clip, evt, $"Delete Multiple Events");
+            }
+        }
+
+        [Serializable]
+        private class SerializableAnimationEventList
+        {
+            public List<SerializableAnimationEvent> events;
         }
 
         private void BindEventItem(VisualElement element, int index)

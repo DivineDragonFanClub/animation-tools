@@ -1,0 +1,16 @@
+.delete-button {
+    background-color: rgba(220, 80, 80, 0.5);
+}
+
+.delete-button:hover {
+    background-color: rgba(240, 100, 100, 0.6);
+}
+
+.delete-button:active {
+    background-color: rgba(255, 120, 120, 0.8);
+}
+
+.delete-button:disabled {
+    background-color: rgba(180, 70, 70, 0.3);
+    opacity: 0.5;
+}
