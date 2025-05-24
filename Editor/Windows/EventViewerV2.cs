@@ -448,7 +448,7 @@ namespace DivineDragon.Windows
                 {
                     lastClipboardContent = currentClipboard;
                     // Update paste button state
-                    bool canPaste = CanPasteEvent() || CanPasteMultipleEvents();
+                    bool canPaste = CanPasteEvent();
                     emptyStatePasteButton.SetEnabled(canPaste);
                 }
             }
@@ -598,30 +598,15 @@ namespace DivineDragon.Windows
             
             // Add paste button
             emptyStatePasteButton = new Button(() =>
-            {
-                // Try to paste single event first
-                if (CanPasteEvent())
+            { 
+                var clipData = EditorGUIUtility.systemCopyBuffer;
+                var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                if (eventList != null && eventList.events != null)
                 {
-                    var clipData = EditorGUIUtility.systemCopyBuffer;
-                    var singleEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
-                    if (singleEvent != null)
+                    var eventsToPaste = eventList.events.Select(e => e.ToAnimationEvent()).ToList();
+                    foreach (var evt in eventsToPaste)
                     {
-                        var newEvent = singleEvent.ToAnimationEvent();
-                        AnimationClipWatcher.AddEventProgrammatically(currentClip, newEvent, "Paste Event");
-                    }
-                }
-                // Try to paste multiple events
-                else if (CanPasteMultipleEvents())
-                {
-                    var clipData = EditorGUIUtility.systemCopyBuffer;
-                    var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
-                    if (eventList != null && eventList.events != null)
-                    {
-                        var eventsToPaste = eventList.events.Select(e => e.ToAnimationEvent()).ToList();
-                        foreach (var evt in eventsToPaste)
-                        {
-                            AnimationClipWatcher.AddEventProgrammatically(currentClip, evt, "Paste Events");
-                        }
+                        AnimationClipWatcher.AddEventProgrammatically(currentClip, evt, "Paste Events");
                     }
                 }
             })
@@ -637,7 +622,7 @@ namespace DivineDragon.Windows
             };
             
             // Enable/disable based on clipboard content
-            emptyStatePasteButton.SetEnabled(CanPasteEvent() || CanPasteMultipleEvents());
+            emptyStatePasteButton.SetEnabled(CanPasteEvent());
             emptyStateContainer.Add(emptyStatePasteButton);
             
 
@@ -753,7 +738,7 @@ namespace DivineDragon.Windows
                 };
 
                 // Copy button
-                var copyButton = new Button(() =>
+                var multiCopyButton = new Button(() =>
                 {
                     CopyMultipleEventsToClipboard(selectedEventItems);
                 })
@@ -773,7 +758,7 @@ namespace DivineDragon.Windows
                 };
                 multiDeleteButton.AddToClassList("delete-button");
 
-                multiSelectControls.Add(copyButton);
+                multiSelectControls.Add(multiCopyButton);
                 multiSelectControls.Add(multiDeleteButton);
 
                 // Add spacing between buttons
@@ -872,6 +857,20 @@ namespace DivineDragon.Windows
 
             quickControls.style.flexDirection = FlexDirection.Row;
 
+            // Copy button
+            var copyButton = new Button(() =>
+            {
+                if (hasSelection)
+                {
+                    CopyEventToClipboard(selectedEventItem);
+                }
+            })
+            {
+                text = "Copy Event",
+                tooltip = hasSelection ? "Copy this event to clipboard" : "Select an event first"
+            };
+            copyButton.SetEnabled(hasSelection);
+
             // Jump to event button
             var jumpToEventButton = new Button(() =>
             {
@@ -940,6 +939,7 @@ namespace DivineDragon.Windows
             deleteButton.SetEnabled(hasSelection);
 
             // Add all buttons to panel
+            quickControls.Add(copyButton);
             quickControls.Add(jumpToEventButton);
             quickControls.Add(moveEventButton);
             quickControls.Add(nudgeBackButton);
@@ -1177,12 +1177,8 @@ namespace DivineDragon.Windows
                             .ToList();
                         CopyMultipleEventsToClipboard(selectedItems);
                     });
-                    
-                    evt.menu.AppendAction("Paste Events Here", (a) => 
-                    {
-                        PasteMultipleEventsFromClipboard(getAttachedClip(), sourceEvent);
-                    },
-                    (a) => CanPasteMultipleEvents() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+
+                    // No paste option for multi-selection as the behavior is currently undefined
                     
                     evt.menu.AppendAction($"Delete {selectedEvents.Count} Events", (a) => 
                     {
@@ -1198,14 +1194,36 @@ namespace DivineDragon.Windows
                 {
                     // Single selection context menu (existing code)
                     evt.menu.AppendAction("Copy Event", (a) => CopyEventToClipboard(sourceEvent));
-                    evt.menu.AppendAction("Paste Over Event", (a) => PasteEventFromClipboard(sourceEvent),
-                        (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                    // Add paste as new option
-                    evt.menu.AppendAction("Paste As New Event", (a) => PasteEventFromClipboardAsNew(sourceEvent),
-                        (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                    // Add paste multiple events option
-                    evt.menu.AppendAction("Paste Multiple Events Here", (a) => PasteMultipleEventsFromClipboard(getAttachedClip(), sourceEvent),
-                        (a) => CanPasteMultipleEvents() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                    
+                    // Show context-aware paste options
+                    if (CanPasteEvent())
+                    {
+                        var clipData = EditorGUIUtility.systemCopyBuffer;
+                        var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                        int eventCount = 0;
+                        bool isSingleEvent = false;
+                        
+                        if (eventList != null && eventList.events != null && eventList.events.Count > 0)
+                        {
+                            eventCount = eventList.events.Count;
+                            isSingleEvent = eventCount == 1;
+                        }
+                        
+                        if (isSingleEvent)
+                        {
+                            evt.menu.AppendAction("Paste Over Event", (a) => PasteEventFromClipboard(sourceEvent));
+                        }
+                        
+                        // Customize paste text based on number of events
+                        string pasteText = eventCount == 1 
+                            ? "Paste as New Event" 
+                            : $"Paste {eventCount} Events as New";
+                        evt.menu.AppendAction(pasteText, (a) =>
+                        {
+                            PasteMultipleEventsFromClipboard(getAttachedClip(), sourceEvent);
+                        });
+                    }
+                    
                     // Add duplicate option
                     evt.menu.AppendAction("Duplicate Event", (a) => DuplicateEvent(sourceEvent));
                     // Add delete option
@@ -1216,10 +1234,9 @@ namespace DivineDragon.Windows
 
         private void CopyEventToClipboard(ParsedEngageAnimationEvent evt)
         {
-            // Serialize event data to JSON or another format
-            var data = AnimationEventToJson(evt.backingAnimationEvent);
-            EditorGUIUtility.systemCopyBuffer = data;
-            Debug.Log($"Copied event: {evt.displayName}");
+            // Always copy as a list for consistency
+            var events = new List<ParsedEngageAnimationEvent> { evt };
+            CopyMultipleEventsToClipboard(events);
         }
 
         private string AnimationEventToJson(AnimationEvent animationEvent)
@@ -1287,15 +1304,15 @@ namespace DivineDragon.Windows
 
         private bool CanPasteEvent()
         {
-            // Validate if clipboard has valid event data
             try
             {
                 var clipData = EditorGUIUtility.systemCopyBuffer;
                 if (string.IsNullOrEmpty(clipData)) return false;
-                
-                // Try to parse as single event format
-                var singleEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
-                return singleEvent != null && !string.IsNullOrEmpty(singleEvent.functionName);
+
+                var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                if (eventList != null && eventList.events != null && eventList.events.Count > 0)
+                    return true;
+                return false;
             }
             catch
             {
@@ -1308,8 +1325,23 @@ namespace DivineDragon.Windows
             try
             {
                 var clipData = EditorGUIUtility.systemCopyBuffer;
-                var serializedEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
-                var sourceEvent = serializedEvent.ToAnimationEvent();
+                AnimationEvent sourceEvent = null;
+                
+                var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                if (eventList != null && eventList.events != null && eventList.events.Count > 0)
+                {
+                    // If it's a single-event list, use "paste over" behavior
+                    if (eventList.events.Count == 1)
+                    {
+                        sourceEvent = eventList.events[0].ToAnimationEvent();
+                    }
+                    else
+                    {
+                        // Multiple events - paste them all at the target time
+                        PasteMultipleEventsFromClipboard(getAttachedClip(), targetEvent);
+                        return;
+                    }
+                }
 
                 if (sourceEvent != null)
                 {
@@ -1320,32 +1352,6 @@ namespace DivineDragon.Windows
                     // Update the event
                     AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), targetEvent, clone, "Paste Event Data");
                     Debug.Log("Pasted event data successfully");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to paste event data: {ex.Message}");
-            }
-        }
-
-        // paste it at the same time as the target event, but don't overwrite it
-        private void PasteEventFromClipboardAsNew(ParsedEngageAnimationEvent targetEvent)
-        {
-            try
-            {
-                var clipData = EditorGUIUtility.systemCopyBuffer;
-                var serializedEvent = JsonUtility.FromJson<SerializableAnimationEvent>(clipData);
-                var sourceEvent = serializedEvent.ToAnimationEvent();
-
-                if (sourceEvent != null)
-                {
-                    // Create a clone to preserve the time of the target event
-                    var clone = sourceEvent.Clone();
-                    clone.time = targetEvent.backingAnimationEvent.time;
-
-                    // Add the new event as a duplicate
-                    AnimationClipWatcher.AddEventProgrammatically(getAttachedClip(), clone, "Paste Event Data as New");
-                    Debug.Log("Pasted event data successfully as new event");
                 }
             }
             catch (Exception ex)
@@ -1371,23 +1377,6 @@ namespace DivineDragon.Windows
             Debug.Log($"Copied {events.Count} events to clipboard");
         }
 
-        private bool CanPasteMultipleEvents()
-        {
-            try
-            {
-                var clipData = EditorGUIUtility.systemCopyBuffer;
-                if (string.IsNullOrEmpty(clipData)) return false;
-                
-                // Try to parse as multiple events format
-                var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
-                return eventList != null && eventList.events != null && eventList.events.Count > 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
         private void PasteMultipleEventsFromClipboard(AnimationClip clip, ParsedEngageAnimationEvent referenceEvent)
         {
             try
@@ -1395,14 +1384,11 @@ namespace DivineDragon.Windows
                 var clipData = EditorGUIUtility.systemCopyBuffer;
                 List<AnimationEvent> eventsToPaste = new List<AnimationEvent>();
 
-                // Only parse multiple events format
-                if (clipData.Contains("\"events\""))
+                // Try to parse as list format first
+                var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                if (eventList != null && eventList.events != null)
                 {
-                    var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
-                    if (eventList != null && eventList.events != null)
-                    {
-                        eventsToPaste = eventList.events.Select(e => e.ToAnimationEvent()).ToList();
-                    }
+                    eventsToPaste = eventList.events.Select(e => e.ToAnimationEvent()).ToList();
                 }
 
                 if (eventsToPaste.Count > 0)
@@ -1416,10 +1402,10 @@ namespace DivineDragon.Windows
                         var clone = evt.Clone();
                         clone.time += offset;
                         // TODO: this is inefficient as we will be parsing the resulting AnimationClip over and over again
-                        AnimationClipWatcher.AddEventProgrammatically(clip, clone, "Paste Multiple Events");
+                        AnimationClipWatcher.AddEventProgrammatically(clip, clone, "Paste Events");
                     }
 
-                    Debug.Log($"Pasted {eventsToPaste.Count} events");
+                    Debug.Log($"Pasted {eventsToPaste.Count} event{(eventsToPaste.Count > 1 ? "s" : "")}");
                 }
             }
             catch (Exception ex)
