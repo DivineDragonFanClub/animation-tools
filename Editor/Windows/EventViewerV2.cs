@@ -467,7 +467,6 @@ namespace DivineDragon.Windows
             
             // Load custom stylesheet
             var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.divinedragon.animation_tools/Editor/AnimationTools.uss");
-            Debug.Log("Loaded stylesheet: " + styleSheet);
             if (styleSheet != null)
             {
                 myInspector.styleSheets.Add(styleSheet);
