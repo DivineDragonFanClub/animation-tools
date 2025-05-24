@@ -84,7 +84,6 @@ namespace DivineDragon.Windows
         private void UpdateButtonToggleState(Button button, bool isActive, string textPrefix)
         {
             button.text = isActive ? $"{textPrefix}: ON" : $"{textPrefix}: OFF";
-            // Optional: Change color to more clearly indicate state
             button.style.backgroundColor = isActive ? new StyleColor(new Color(0.4f, 0.6f, 0.4f, 0.5f)) : new StyleColor(StyleKeyword.Initial);
         }
 
@@ -1063,8 +1062,6 @@ namespace DivineDragon.Windows
             parameterEditors.style.marginBottom = 5;
 
             panel.Add(parameterEditors);
-            // border for parameter editors
-
 
             // space between parameter editors
             foreach (var child in parameterEditors.Children())
@@ -1075,9 +1072,6 @@ namespace DivineDragon.Windows
 
             var helpBox = new HelpBox(selectedEventItem.Explanation, HelpBoxMessageType.Info);
             panel.Add(helpBox);
-
-            // create a piece of user selectable text
-
         }
 
         private VisualElement MakeEventItem()
