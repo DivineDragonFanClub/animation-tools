@@ -224,6 +224,8 @@ namespace DivineDragon
             WeaponControl,
             [System.ComponentModel.Description("Motion Control")]
             MotionControl,
+            [System.ComponentModel.Description("Riders")]
+            Riders,
             [System.ComponentModel.Description("Uncategorized")]
             Uncategorized
         }

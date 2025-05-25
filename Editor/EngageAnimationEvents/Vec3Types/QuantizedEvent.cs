@@ -85,7 +85,7 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
                 _showEditor = !_showEditor;
                 saveButton.style.display = _showEditor ? DisplayStyle.Flex : DisplayStyle.None;
                 // say cancel if showEditor is true
-                toggleButton.text = _showEditor ? "Cancel" : "Show Editor";
+                toggleButton.text = _showEditor ? "Cancel" : "Show Gizmo Editor in Scene";
                 // if canceling, reset the handlesPosition and handlesRotation
                 if (!_showEditor)
                 {
@@ -94,7 +94,7 @@ namespace DivineDragon.EngageAnimationEvents.Vec3Types
                 }
             };
             
-            toggleButton.text = "Show Editor";
+            toggleButton.text = "Show Gizmo Editor in Scene";
             container.Add(toggleButton);
             return container;
         }

@@ -5,21 +5,18 @@ using UnityEngine;
 
 namespace DivineDragon.EngageAnimationEvents
 {
-    public class AttackVoice : ParsedEngageAnimationEvent
+    public class QuickMotionBegin : ParsedEngageAnimationEvent
     {
-        public override string displayName => "Attack Voice";
+        public override string displayName => "Quick Motion Begin";
 
-        public override EventCategory category => EventCategory.AttackingCharacter;
+        public override EventCategory category => EventCategory.MotionControl;
 
-        public override string Summary => $"Play the '{backingAnimationEvent.stringParameter}' attack voice clip.";
+        public override string Summary { get; } = "The beginning of a quick motion.";
 
-        public override string Explanation { get; } = "Plays the specified attack voice clip. The clip name is passed as a string parameter.";
+        public override string Explanation { get; } = "Signals the beginning of a quick motion. Its effect is not yet fully understood.";
 
-        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
-        {
-            ExposedPropertyType.String,
-        };
-        
+        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
+
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {
             // Find the child object named c_neck_jnt
@@ -28,29 +25,29 @@ namespace DivineDragon.EngageAnimationEvents
             if (c_neck_jnt != null)
             {
                 GUIStyle style = new GUIStyle();
-                style.normal.textColor = Color.blue;
+                style.normal.textColor = Color.yellow;
                 style.fontSize = 20;
-                string labelText = $"Attack Voice: {backingAnimationEvent.stringParameter}";
+                string labelText = "Quick Motion Begin";
                 Handles.Label(c_neck_jnt.position, labelText, style);
             }
         }
     }
 
 
-    public class AttackVoiceParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
+    public class QuickMotionBeginParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
         public override MatchRule[] matchRules => new MatchRule[]
         {
-            new FunctionNameMatchRule("音攻撃ボイス")
+            new FunctionNameMatchRule("素早い動作始")
         };
 
         public override ParsedEngageAnimationEvent ParseFrom(AnimationEvent animEvent)
         {
-            AttackVoice attackVoice = new AttackVoice
+            QuickMotionBegin quickMotionBegin = new QuickMotionBegin
             {
                 backingAnimationEvent = animEvent
             };
-            return attackVoice;
+            return quickMotionBegin;
         }
     }
 }

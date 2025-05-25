@@ -5,21 +5,18 @@ using UnityEngine;
 
 namespace DivineDragon.EngageAnimationEvents
 {
-    public class AttackVoice : ParsedEngageAnimationEvent
+    public class MagicAction2 : ParsedEngageAnimationEvent
     {
-        public override string displayName => "Attack Voice";
+        public override string displayName => "Magic Action 2";
 
-        public override EventCategory category => EventCategory.AttackingCharacter;
+        public override EventCategory category => EventCategory.MotionControl;
 
-        public override string Summary => $"Play the '{backingAnimationEvent.stringParameter}' attack voice clip.";
+        public override string Summary { get; } = "Trigger magic action 2.";
 
-        public override string Explanation { get; } = "Plays the specified attack voice clip. The clip name is passed as a string parameter.";
+        public override string Explanation { get; } = "Works in conjunction with the Magic objects (which are not yet supported in this editor).";
 
-        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
-        {
-            ExposedPropertyType.String,
-        };
-        
+        public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
+
         public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
         {
             // Find the child object named c_neck_jnt
@@ -28,29 +25,29 @@ namespace DivineDragon.EngageAnimationEvents
             if (c_neck_jnt != null)
             {
                 GUIStyle style = new GUIStyle();
-                style.normal.textColor = Color.blue;
+                style.normal.textColor = Color.magenta;
                 style.fontSize = 20;
-                string labelText = $"Attack Voice: {backingAnimationEvent.stringParameter}";
+                string labelText = "Magic Action 2";
                 Handles.Label(c_neck_jnt.position, labelText, style);
             }
         }
     }
 
 
-    public class AttackVoiceParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
+    public class MagicAction2Parser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
         public override MatchRule[] matchRules => new MatchRule[]
         {
-            new FunctionNameMatchRule("音攻撃ボイス")
+            new FunctionNameMatchRule("魔法動作2")
         };
 
         public override ParsedEngageAnimationEvent ParseFrom(AnimationEvent animEvent)
         {
-            AttackVoice attackVoice = new AttackVoice
+            MagicAction2 magicAction2 = new MagicAction2
             {
                 backingAnimationEvent = animEvent
             };
-            return attackVoice;
+            return magicAction2;
         }
     }
 }

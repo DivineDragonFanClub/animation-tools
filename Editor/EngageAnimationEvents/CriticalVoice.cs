@@ -30,7 +30,7 @@ namespace DivineDragon.EngageAnimationEvents
                 GUIStyle style = new GUIStyle();
                 style.normal.textColor = Color.blue;
                 style.fontSize = 20;
-                string labelText = $"Critical Voice: {backingAnimationEvent.intParameter}";
+                string labelText = $"Critical Voice";
                 Handles.Label(c_neck_jnt.position, labelText, style);
             }
         }

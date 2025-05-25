@@ -842,20 +842,6 @@ namespace DivineDragon.Windows
 
             quickControls.style.flexDirection = FlexDirection.Row;
 
-            // Copy button
-            var copyButton = new Button(() =>
-            {
-                if (hasSelection)
-                {
-                    CopyEventToClipboard(selectedEventItem);
-                }
-            })
-            {
-                text = "Copy Event",
-                tooltip = hasSelection ? "Copy this event to clipboard" : "Select an event first"
-            };
-            copyButton.SetEnabled(hasSelection);
-
             // Jump to event button
             var jumpToEventButton = new Button(() =>
             {
@@ -924,7 +910,6 @@ namespace DivineDragon.Windows
             deleteButton.SetEnabled(hasSelection);
 
             // Add all buttons to panel
-            quickControls.Add(copyButton);
             quickControls.Add(jumpToEventButton);
             quickControls.Add(moveEventButton);
             quickControls.Add(nudgeBackButton);
