@@ -214,6 +214,8 @@ namespace DivineDragon
             Particle,
             [System.ComponentModel.Description("Camera")]
             Camera,
+            [System.ComponentModel.Description("Camera Effects")]
+            CameraEffects,
             [System.ComponentModel.Description("Cancels")]
             Cancels,
             [System.ComponentModel.Description("Attack Specifics")]
