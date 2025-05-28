@@ -11,9 +11,9 @@ namespace DivineDragon.EngageAnimationEvents
 
         public override EventCategory category => EventCategory.WeaponControl;
 
-        public override string Summary { get; } = "Weapon trail end event.";
+        public override string Summary { get; } = "End right hand weapon trail.";
 
-        public override string Explanation { get; } = "Signals the end of a weapon trail effect.";
+        public override string Explanation { get; } = "Marks the end of the right hand weapon trail rendering that started with Weapon Trail Begin.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
 
