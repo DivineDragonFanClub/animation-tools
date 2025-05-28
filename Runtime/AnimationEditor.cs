@@ -10,6 +10,8 @@ namespace Combat
         public PrefetchedCurve_Bridge bridge;
         public Transform RightRoot;
         public Transform RightTip;
+        public Transform LeftRoot;
+        public Transform LeftTip;
         
         public bool AlwaysRenderHitEvents = true;
         public bool AlwaysRenderVec3Events = true;
