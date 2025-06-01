@@ -4,8 +4,9 @@
     "references": [
         "animation.tools"
     ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [
+    ],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
