@@ -15,6 +15,13 @@ namespace DivineDragon.Windows
         private const string ScrubToEventKey = "EventViewerV2_ScrubToEvent";
         private const string ShowDifferentialTimestampKey = "EventViewerV2_ShowDifferentialTimestamp";
         private const string DeveloperModeKey = "EventViewerV2_DeveloperMode";
+        private const string SearchModeKey = "EventViewerV2_SearchMode";
+        
+        private enum SearchMode
+        {
+            All,
+            NameOnly
+        }
 
         [MenuItem("Divine Dragon/Animation Tools/Event Viewer")]
         public static void ShowExample()
@@ -80,6 +87,7 @@ namespace DivineDragon.Windows
         private bool scrubToEvent = true;
         private bool showDifferentialTimestamp = false;
         private bool developerMode = false;
+        private SearchMode searchMode = SearchMode.All;
 
         private void UpdateButtonToggleState(Button button, bool isActive, string textPrefix)
         {
@@ -93,6 +101,7 @@ namespace DivineDragon.Windows
             scrubToEvent = EditorPrefs.GetBool(ScrubToEventKey, true);
             showDifferentialTimestamp = EditorPrefs.GetBool(ShowDifferentialTimestampKey, false);
             developerMode = EditorPrefs.GetBool(DeveloperModeKey, false);
+            searchMode = (SearchMode)EditorPrefs.GetInt(SearchModeKey, (int)SearchMode.All);
         }
 
         private void SavePreferences()
@@ -101,6 +110,7 @@ namespace DivineDragon.Windows
             EditorPrefs.SetBool(ScrubToEventKey, scrubToEvent);
             EditorPrefs.SetBool(ShowDifferentialTimestampKey, showDifferentialTimestamp);
             EditorPrefs.SetBool(DeveloperModeKey, developerMode);
+            EditorPrefs.SetInt(SearchModeKey, (int)searchMode);
         }
 
         protected override void OnUnderlyingAnimationClipChanged()
@@ -159,33 +169,42 @@ namespace DivineDragon.Windows
                 var lowerSearchTerm = searchTerm.ToLower();
                 eventsToShow = allEvents.Where(evt =>
                 {
-                    // Check display name
-                    if (evt.displayName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                    if (searchMode == SearchMode.NameOnly)
+                    {
+                        // Only search in display name and original name (Japanese name)
+                        return evt.displayName.ToLower().Contains(lowerSearchTerm) ||
+                               evt.originalName.ToLower().Contains(lowerSearchTerm);
+                    }
+                    else // SearchMode.All
+                    {
+                        // Check display name
+                        if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check original name (backing function name)
-                    if (evt.originalName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check original name (backing function name)
+                        if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check function name parameter
-                    if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check function name parameter
+                        if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check string parameter
-                    if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
-                        evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check string parameter
+                        if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                            evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check summary
-                    if (!string.IsNullOrEmpty(evt.Summary) &&
-                        evt.Summary.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check summary
+                        if (!string.IsNullOrEmpty(evt.Summary) &&
+                            evt.Summary.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check time as string
-                    if (evt.backingAnimationEvent.time.ToString("F3").Contains(searchTerm))
-                        return true;
+                        // Check time as string
+                        if (evt.backingAnimationEvent.time.ToString("F3").Contains(searchTerm))
+                            return true;
 
-                    return false;
+                        return false;
+                    }
                 }).ToList();
             }
             
@@ -234,33 +253,42 @@ namespace DivineDragon.Windows
                     var lowerSearchTerm = currentSearchTerm.ToLower();
                     filteredEvents = latestParsedEvents.Where(evt =>
                     {
-                        // Check display name
-                        if (evt.displayName.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                        if (searchMode == SearchMode.NameOnly)
+                        {
+                            // Only search in display name and original name (Japanese name)
+                            return evt.displayName.ToLower().Contains(lowerSearchTerm) ||
+                                   evt.originalName.ToLower().Contains(lowerSearchTerm);
+                        }
+                        else // SearchMode.All
+                        {
+                            // Check display name
+                            if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check original name (backing function name)
-                        if (evt.originalName.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                            // Check original name (backing function name)
+                            if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check function name parameter
-                        if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                            // Check function name parameter
+                            if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check string parameter
-                        if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
-                            evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                            // Check string parameter
+                            if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                                evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check summary
-                        if (!string.IsNullOrEmpty(evt.Summary) &&
-                            evt.Summary.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                            // Check summary
+                            if (!string.IsNullOrEmpty(evt.Summary) &&
+                                evt.Summary.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check time as string
-                        if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
-                            return true;
+                            // Check time as string
+                            if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
+                                return true;
 
-                        return false;
+                            return false;
+                        }
                     }).ToList();
                 }
                 
@@ -452,6 +480,25 @@ namespace DivineDragon.Windows
             
             searchControls.Add(clearButton);
             
+            // Add search mode dropdown
+            var searchModeDropdown = new EnumField(searchMode);
+            searchModeDropdown.style.width = 100;
+            searchModeDropdown.style.marginLeft = 5;
+            searchModeDropdown.tooltip = "Search mode:\n" +
+                "• All - Searches in event names (English & Japanese), parameters, summaries, and timestamps\n" +
+                "• Name Only - Searches only in event display names (English) and original names (Japanese)";
+            searchModeDropdown.RegisterValueChangedCallback(evt =>
+            {
+                searchMode = (SearchMode)evt.newValue;
+                SavePreferences();
+                // Re-filter with current search term
+                if (!string.IsNullOrEmpty(currentSearchTerm))
+                {
+                    FilterEventsList(currentSearchTerm);
+                }
+            });
+            searchControls.Add(searchModeDropdown);
+            
             // Set up search field callback
             searchField.value = currentSearchTerm;
             searchField.RegisterValueChangedCallback(evt =>
@@ -534,33 +581,42 @@ namespace DivineDragon.Windows
                 var lowerSearchTerm = currentSearchTerm.ToLower();
                 eventsToShow = allEvents.Where(evt =>
                 {
-                    // Check display name
-                    if (evt.displayName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                    if (searchMode == SearchMode.NameOnly)
+                    {
+                        // Only search in display name and original name (Japanese name)
+                        return evt.displayName.ToLower().Contains(lowerSearchTerm) ||
+                               evt.originalName.ToLower().Contains(lowerSearchTerm);
+                    }
+                    else // SearchMode.All
+                    {
+                        // Check display name
+                        if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check original name (backing function name)
-                    if (evt.originalName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check original name (backing function name)
+                        if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check function name parameter
-                    if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check function name parameter
+                        if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check string parameter
-                    if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
-                        evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check string parameter
+                        if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                            evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check summary
-                    if (!string.IsNullOrEmpty(evt.Summary) &&
-                        evt.Summary.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check summary
+                        if (!string.IsNullOrEmpty(evt.Summary) &&
+                            evt.Summary.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check time as string
-                    if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
-                        return true;
+                        // Check time as string
+                        if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
+                            return true;
 
-                    return false;
+                        return false;
+                    }
                 }).ToList();
             }
 
