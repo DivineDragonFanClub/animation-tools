@@ -20,6 +20,7 @@ namespace DivineDragon.Windows
         private enum SearchMode
         {
             All,
+            [System.ComponentModel.Description("Name Only")]
             NameOnly
         }
 
