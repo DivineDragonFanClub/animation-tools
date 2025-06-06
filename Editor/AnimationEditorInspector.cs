@@ -256,8 +256,30 @@ namespace DivineDragon
             // position the main camera at the camFollow_loc position
             mainCamera.transform.position = camFollowLoc.position;
             
-            // point at the look at loc
-            mainCamera.transform.LookAt(camLookAtLoc.position);
+            // Calculate rotation like the game engine does
+            Vector3 followPos = camFollowLoc.position;
+            Vector3 lookAtPos = camLookAtLoc.position;
+            Vector3 cameraDirection = lookAtPos - followPos;
+            
+            if (cameraDirection.magnitude > 0.0f)
+            {
+                // Create base look rotation from camera to look target
+                Quaternion baseRotation = Quaternion.LookRotation(cameraDirection, Vector3.up);
+                
+                // Get the euler angles from camFollowLoc's local rotation
+                // Based on the disassembly, it appears to use the local rotation's euler angles
+                Vector3 localEuler = camFollowLoc.localRotation.eulerAngles;
+                
+                // The disassembly shows LookupDegree calculation using euler angles
+                // It seems to apply the Y rotation (pitch) from the camFollowLoc
+                float lookupDegree = -localEuler.y; // Negative Y for pitch
+                
+                // Apply the pitch rotation around the camera's local X axis
+                Quaternion pitchRotation = Quaternion.AngleAxis(lookupDegree, baseRotation * Vector3.right);
+                
+                // Combine rotations: base look rotation with pitch adjustment
+                mainCamera.transform.rotation = pitchRotation * baseRotation;
+            }
         }
     }
 }
