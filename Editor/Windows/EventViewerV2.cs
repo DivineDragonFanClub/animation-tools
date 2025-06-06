@@ -42,6 +42,10 @@ namespace DivineDragon.Windows
             float closestTime = float.MaxValue;
             // loop through all the events
             int closestIndex = -1;
+            if (listView == null || listView.itemsSource == null)
+            {
+                return;
+            }
             foreach (var item in listView.itemsSource)
             {
                 if (item is ParsedEngageAnimationEvent parsedEvent)

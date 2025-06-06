@@ -215,6 +215,37 @@ namespace DivineDragon
             if (camLookAtLoc == null || camFollowLoc == null || lookAtLoc == null)
                 return;
 
+            // Get parsed events to check for camera inverse setting
+            var privateEvents = AnimationClipWatcher.GetParsedEvents(getAttachedClip());
+            bool useInverseCamera = false;
+            
+            if (privateEvents != null)
+            {
+                // Find the most recent Camera event before or at current time
+                var editor = GetAnimationWindow();
+                float currentTime = editor.time;
+                
+                DivineDragon.EngageAnimationEvents.Camera mostRecentCameraEvent = null;
+                float mostRecentTime = -1f;
+                
+                foreach (var animEvent in privateEvents)
+                {
+                    if (animEvent is DivineDragon.EngageAnimationEvents.Camera cameraEvent && 
+                        animEvent.backingAnimationEvent.time <= currentTime &&
+                        animEvent.backingAnimationEvent.time > mostRecentTime)
+                    {
+                        mostRecentCameraEvent = cameraEvent;
+                        mostRecentTime = animEvent.backingAnimationEvent.time;
+                    }
+                }
+                
+                // Check if the most recent camera event has inverse enabled
+                if (mostRecentCameraEvent != null)
+                {
+                    useInverseCamera = (mostRecentCameraEvent.backingAnimationEvent.intParameter & 8) != 0;
+                }
+            }
+
             // Draw lookAt_loc indicator
             Handles.color = Color.red;
             Handles.SphereHandleCap(0, lookAtLoc.position, Quaternion.identity, 0.1f, EventType.Repaint);
@@ -249,36 +280,33 @@ namespace DivineDragon
                     Quaternion.LookRotation(direction), size, EventType.Repaint);
             }
             
-            
             // grab the main camera
             Camera mainCamera = Camera.main;
             
             // position the main camera at the camFollow_loc position
             mainCamera.transform.position = camFollowLoc.position;
             
-            // Calculate rotation like the game engine does
             Vector3 followPos = camFollowLoc.position;
             Vector3 lookAtPos = camLookAtLoc.position;
             Vector3 cameraDirection = lookAtPos - followPos;
             
             if (cameraDirection.magnitude > 0.0f)
             {
-                // Create base look rotation from camera to look target
-                Quaternion baseRotation = Quaternion.LookRotation(cameraDirection, Vector3.up);
+                Quaternion lookRotation = Quaternion.LookRotation(cameraDirection, Vector3.up);
                 
-                // Get the euler angles from camFollowLoc's local rotation
-                // Based on the disassembly, it appears to use the local rotation's euler angles
                 Vector3 localEuler = camFollowLoc.localRotation.eulerAngles;
                 
-                // The disassembly shows LookupDegree calculation using euler angles
-                // It seems to apply the Y rotation (pitch) from the camFollowLoc
-                float lookupDegree = -localEuler.y; // Negative Y for pitch
+                float zRotation = -localEuler.y;
                 
-                // Apply the pitch rotation around the camera's local X axis
-                Quaternion pitchRotation = Quaternion.AngleAxis(lookupDegree, baseRotation * Vector3.right);
+                // Apply inverse if the camera event specifies it
+                if (useInverseCamera)
+                {
+                    zRotation = localEuler.y; // Positive when inverted
+                }
                 
-                // Combine rotations: base look rotation with pitch adjustment
-                mainCamera.transform.rotation = pitchRotation * baseRotation;
+                Quaternion zRotationQuat = Quaternion.Euler(0, 0, zRotation);
+                
+                mainCamera.transform.rotation = lookRotation * zRotationQuat;
             }
         }
     }
