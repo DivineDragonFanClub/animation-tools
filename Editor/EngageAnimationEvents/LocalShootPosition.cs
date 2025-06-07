@@ -12,7 +12,7 @@ namespace DivineDragon.EngageAnimationEvents
 
         public override string Summary { get; } = "Not yet investigated.";
 
-        public override string Explanation { get; } = "Not yet investigated. Likely related to the shoot position of a projectile or similar.";
+        public override string Explanation { get; } = "Not yet investigated.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {

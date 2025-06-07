@@ -299,8 +299,27 @@ namespace DivineDragon.Windows
             // Initial build
             RebuildEventList("");
             
-            myInspector.Add(searchContainer);
-            myInspector.Add(scrollable);
+            // Create a container with proper layout
+            var mainContainer = new VisualElement()
+            {
+                style =
+                {
+                    flexGrow = 1,
+                    flexDirection = FlexDirection.Column
+                }
+            };
+            
+            // Add search container with fixed positioning
+            searchContainer.style.marginLeft = 5;
+            searchContainer.style.marginRight = 5;
+            mainContainer.Add(searchContainer);
+            
+            // Add scrollable with proper margins to prevent overlap
+            scrollable.style.flexGrow = 1;
+            scrollable.style.marginTop = 5;
+            mainContainer.Add(scrollable);
+            
+            myInspector.Add(mainContainer);
         }
         
         private void addAnimationEvent(AnimationClip currentClip, float time, string animType)
