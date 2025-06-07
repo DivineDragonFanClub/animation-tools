@@ -2,24 +2,20 @@ using System.Collections.Generic;
 using Combat;
 using UnityEngine;
 
-namespace DivineDragon.EngageAnimationEvents
+namespace DivineDragon.EngageAnimationEvents.Vec3Types
 {
-    public class LocalShootPosition : ParsedEngageAnimationEvent
+    public class LocalShootPosition : QuantizedEvent
     {
         public override string displayName => "Local Shoot Position";
 
         public override EventCategory category => EventCategory.AttackSpecifics;
 
-        public override string Summary { get; } = "Not yet investigated.";
-
-        public override string Explanation { get; } = "Not yet investigated.";
+        public override string Explanation { get; } = "Marks the local shoot position for projectile-based attacks. The position is relative to the character's root transform.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Float,
             ExposedPropertyType.Int,
-            ExposedPropertyType.String,
-            ExposedPropertyType.ObjectReference
         };
     }
 

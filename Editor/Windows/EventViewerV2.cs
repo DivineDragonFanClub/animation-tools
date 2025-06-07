@@ -579,6 +579,10 @@ namespace DivineDragon.Windows
 
             // Get events - apply current search filter if any
             var allEvents = AnimationClipWatcher.GetParsedEvents(currentClip);
+            if (allEvents == null)
+            {
+                return;
+            }
             var eventsToShow = allEvents;
             
             if (!string.IsNullOrEmpty(currentSearchTerm))
