@@ -35,9 +35,6 @@ namespace DivineDragon.Windows
         private GameObject previewCameraGO;
         private Vector2 lastMousePosition;
         private bool isDragging = false;
-        private float orbitDistance = 5f;
-        private float orbitAngleX = 0f;
-        private float orbitAngleY = 20f;
         
         // Camera transform references
         private Transform camLookAtLoc;
@@ -318,9 +315,6 @@ namespace DivineDragon.Windows
                     
                     // Draw the preview texture
                     GUI.DrawTexture(rect, previewRenderTexture, ScaleMode.ScaleToFit);
-                    
-                    // Draw overlay controls
-                    DrawPreviewOverlay(rect);
                 });
                 
                 previewContainer.style.flexGrow = 1;
@@ -450,12 +444,6 @@ namespace DivineDragon.Windows
                 isDragging = false;
             }
         }
-        
-        private void DrawPreviewOverlay(Rect rect)
-        {
-            // Empty - no overlay needed since we have controls below the preview
-        }
-        
         private void PanPreviewCamera(Vector2 mouseDelta)
         {
             if (camFollowLoc == null || camLookAtLoc == null) return;
@@ -966,11 +954,6 @@ namespace DivineDragon.Windows
             }).Every(UPDATE_INTERVAL_MS);
             
             return section;
-        }
-        
-        private string FormatVector3(Vector3 v)
-        {
-            return $"({v.x:F2}, {v.y:F2}, {v.z:F2})";
         }
         
         private void KeyframeCurrentPose()
