@@ -20,11 +20,11 @@ namespace DivineDragon.Windows
         private const float DEFAULT_LOOK_DISTANCE = 5f;
         private const int UPDATE_INTERVAL_MS = 10;
         
-        [MenuItem("Divine Dragon/Animation Tools/Camera Animation")]
+        [MenuItem("Divine Dragon/Animation Tools/Camera Preview")]
         public static void ShowWindow()
         {
             CameraAnimationWindow wnd = GetWindow<CameraAnimationWindow>();
-            wnd.titleContent = new GUIContent("Camera Animation");
+            wnd.titleContent = new GUIContent("Camera Preview");
         }
         
         private bool autoKeyframe = false;
