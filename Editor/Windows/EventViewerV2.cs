@@ -156,6 +156,7 @@ namespace DivineDragon.Windows
         private HelpBox noEventsHelpBox;
         private VisualElement emptyStateContainer;
         private Button emptyStatePasteButton;
+        private Button emptyStateImportButton;
         private string lastClipboardContent = "";
         
         private void FilterEventsList(string searchTerm)
@@ -223,10 +224,14 @@ namespace DivineDragon.Windows
                 bool clipIsActuallyEmpty = allEvents.Count == 0;
                 emptyStateContainer.style.display = eventsToShow.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
                 
-                // Hide paste button if we're just filtering
+                // Hide paste and import buttons if we're just filtering
                 if (emptyStatePasteButton != null)
                 {
                     emptyStatePasteButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
+                }
+                if (emptyStateImportButton != null)
+                {
+                    emptyStateImportButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
                 }
             }
             
@@ -325,11 +330,16 @@ namespace DivineDragon.Windows
                 {
                     emptyStateContainer.style.display = filteredEvents.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
                     
-                    // Only show paste button if clip is actually empty
+                    // Only show paste and import buttons if clip is actually empty
                     if (emptyStatePasteButton != null)
                     {
                         bool clipIsActuallyEmpty = latestParsedEvents.Count == 0;
                         emptyStatePasteButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
+                    }
+                    if (emptyStateImportButton != null)
+                    {
+                        bool clipIsActuallyEmpty = latestParsedEvents.Count == 0;
+                        emptyStateImportButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
                     }
                 }
                 
@@ -677,6 +687,22 @@ namespace DivineDragon.Windows
             emptyStatePasteButton.SetEnabled(CanPasteEvent());
             emptyStateContainer.Add(emptyStatePasteButton);
             
+            // Add import button
+            emptyStateImportButton = new Button(() =>
+            {
+                ShowImportEventsWindow();
+            })
+            {
+                text = "Import Events from Another Clip",
+                style =
+                {
+                    marginTop = 10,
+                    marginLeft = 10,
+                    marginRight = 10,
+                    height = 30
+                }
+            };
+            emptyStateContainer.Add(emptyStateImportButton);
 
             operationsPanel = new VisualElement();
             operationsPanel.style.flexDirection = FlexDirection.Column;
@@ -1632,6 +1658,85 @@ namespace DivineDragon.Windows
             {
                 FocusWindowIfItsOpen(animationWindowType);
             }
+        }
+        
+        private void ShowImportEventsWindow()
+        {
+            var window = ScriptableObject.CreateInstance<ImportAnimationEventsWindow>();
+            window.targetEventViewer = this;
+            window.ShowUtility();
+        }
+        
+        public void ImportEventsFromClip(AnimationClip sourceClip)
+        {
+            if (sourceClip == null) return;
+            
+            var targetClip = getAttachedClip();
+            if (targetClip == null) return;
+            
+            // Get all events from the source clip
+            var sourceEvents = AnimationUtility.GetAnimationEvents(sourceClip);
+            if (sourceEvents.Length == 0)
+            {
+                Debug.LogWarning($"No events found in source clip: {sourceClip.name}");
+                return;
+            }
+            
+            // Import each event
+            foreach (var evt in sourceEvents)
+            {
+                AnimationClipWatcher.AddEventProgrammatically(targetClip, evt, "Import Events");
+            }
+            
+            Debug.Log($"Successfully imported {sourceEvents.Length} events from {sourceClip.name} to {targetClip.name}");
+        }
+    }
+    
+    public class ImportAnimationEventsWindow : EditorWindow
+    {
+        public EventViewerV2 targetEventViewer;
+        private AnimationClip sourceClip;
+        
+        void OnGUI()
+        {
+            titleContent = new GUIContent("Import Animation Events");
+            minSize = new Vector2(400, 150);
+            
+            EditorGUILayout.Space(10);
+            
+            EditorGUILayout.LabelField("Import Animation Events", EditorStyles.boldLabel);
+            EditorGUILayout.Space(5);
+            
+            EditorGUILayout.HelpBox("Select an animation clip to import all events to the current animation.", MessageType.Info);
+            
+            EditorGUILayout.Space(10);
+            
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Source Clip:", GUILayout.Width(80));
+            sourceClip = EditorGUILayout.ObjectField(sourceClip, typeof(AnimationClip), false) as AnimationClip;
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(10);
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            GUI.enabled = sourceClip != null;
+            if (GUILayout.Button("Import Events", GUILayout.Height(30)))
+            {
+                if (targetEventViewer != null && sourceClip != null)
+                {
+                    targetEventViewer.ImportEventsFromClip(sourceClip);
+                    Close();
+                }
+            }
+            GUI.enabled = true;
+            
+            if (GUILayout.Button("Cancel", GUILayout.Height(30)))
+            {
+                Close();
+            }
+            
+            EditorGUILayout.EndHorizontal();
         }
     }
 }
