@@ -392,7 +392,10 @@ namespace DivineDragon.Windows
         {
             if (previousTime != CurrentTime)
             {
-                listView.Refresh();
+                if (listView != null)
+                {
+                    listView.Refresh();
+                }
                 previousTime = CurrentTime;
             }
             
