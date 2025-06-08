@@ -161,15 +161,18 @@ namespace DivineDragon.Windows
                 }
             }
             
-            // Update preview camera
+            // Force repaint for real-time updates
+            Repaint();
+        }
+        
+        private void LateUpdatePreviewCamera()
+        {
+            // Update and render preview camera
             if (previewCamera != null)
             {
                 UpdatePreviewCamera();
                 previewCamera.Render();
             }
-            
-            // Force repaint for real-time updates
-            Repaint();
         }
         
         private bool HasTransformChanged()
@@ -312,6 +315,9 @@ namespace DivineDragon.Windows
                     
                     // Handle mouse events for camera interaction
                     HandlePreviewMouseEvents(rect);
+                    
+                    // Update camera just before drawing to minimize jitter
+                    LateUpdatePreviewCamera();
                     
                     // Draw the preview texture
                     GUI.DrawTexture(rect, previewRenderTexture, ScaleMode.ScaleToFit);
