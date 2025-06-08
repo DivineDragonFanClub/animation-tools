@@ -12,6 +12,14 @@ namespace DivineDragon.Windows
     {
         private const string AutoKeyframeKey = "CameraAnimationWindow_AutoKeyframe";
         
+        // UI Constants
+        private const float KEYFRAME_TOLERANCE = 0.001f;
+        private const float PAN_SENSITIVITY = 0.01f;
+        private const float ZOOM_SENSITIVITY = 0.1f;
+        private const float TILT_SENSITIVITY = 0.5f;
+        private const float DEFAULT_LOOK_DISTANCE = 5f;
+        private const int UPDATE_INTERVAL_MS = 10;
+        
         [MenuItem("Divine Dragon/Animation Tools/Camera Animation")]
         public static void ShowWindow()
         {
@@ -259,10 +267,35 @@ namespace DivineDragon.Windows
             section.style.paddingLeft = 5;
             section.style.paddingRight = 5;
             
+            // Create title container to hold label and help button
+            var titleContainer = new VisualElement();
+            titleContainer.style.flexDirection = FlexDirection.Row;
+            titleContainer.style.alignItems = Align.Center;
+            titleContainer.style.marginBottom = 5;
+            
             var title = new Label("Camera Preview");
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            title.style.marginBottom = 5;
-            section.Add(title);
+            titleContainer.Add(title);
+            
+            // Help button right next to the title
+            var helpButton = new Button(() => {})
+            {
+                text = "?",
+                tooltip = "Camera Preview Controls:\n\n" +
+                         "• Drag: Pan camera\n" +
+                         "• Shift+Drag: Dutch tilt (camera roll)\n" +
+                         "• Scroll: Zoom in/out\n\n" +
+                         "Note: Auto-keyframe must be enabled to save changes while interacting with the preview."
+            };
+            helpButton.style.marginLeft = 5;
+            helpButton.style.width = 20;
+            helpButton.style.height = 20;
+            SetBorderRadius(helpButton.style, 10);
+            helpButton.style.fontSize = 12;
+            helpButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            titleContainer.Add(helpButton);
+            
+            section.Add(titleContainer);
             
             if (previewRenderTexture != null)
             {
@@ -361,27 +394,6 @@ namespace DivineDragon.Windows
                 applyToSceneCameraButton.style.marginLeft = 5;
                 secondRow.Add(applyToSceneCameraButton);
                 
-                // Help button
-                var helpButton = new Button(() => {})
-                {
-                    text = "?",
-                    tooltip = "Camera Preview Controls:\n\n" +
-                             "• Drag: Pan camera\n" +
-                             "• Shift+Drag: Dutch tilt (camera roll)\n" +
-                             "• Scroll: Zoom in/out\n\n" +
-                             "Note: Auto-keyframe must be enabled to save changes while interacting with the preview."
-                };
-                helpButton.style.marginLeft = 10;
-                helpButton.style.width = 20;
-                helpButton.style.height = 20;
-                helpButton.style.borderTopLeftRadius = 10;
-                helpButton.style.borderTopRightRadius = 10;
-                helpButton.style.borderBottomLeftRadius = 10;
-                helpButton.style.borderBottomRightRadius = 10;
-                helpButton.style.fontSize = 12;
-                helpButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-                secondRow.Add(helpButton);
-                
                 controlsContainer.Add(firstRow);
                 controlsContainer.Add(secondRow);
                 section.Add(controlsContainer);
@@ -448,7 +460,7 @@ namespace DivineDragon.Windows
         {
             if (camFollowLoc == null || camLookAtLoc == null) return;
             
-            float sensitivity = 0.01f;
+            float sensitivity = PAN_SENSITIVITY;
             
             // Calculate right and up vectors relative to camera
             Vector3 lookDirection = (camLookAtLoc.position - camFollowLoc.position).normalized;
@@ -475,7 +487,7 @@ namespace DivineDragon.Windows
         {
             if (camFollowLoc == null || camLookAtLoc == null) return;
             
-            float zoomSensitivity = 0.1f;
+            float zoomSensitivity = ZOOM_SENSITIVITY;
             
             Vector3 lookDirection = (camLookAtLoc.position - camFollowLoc.position).normalized;
             Vector3 zoomMovement = lookDirection * scrollDelta * zoomSensitivity;
@@ -496,7 +508,7 @@ namespace DivineDragon.Windows
         {
             if (camFollowLoc == null) return;
             
-            float tiltSensitivity = 0.5f;
+            float tiltSensitivity = TILT_SENSITIVITY;
             
             // The camera system uses Y rotation of camFollowLoc to create Z rotation (tilt) in the final camera
             // Use horizontal mouse movement for tilt rotation
@@ -549,7 +561,7 @@ namespace DivineDragon.Windows
             
             // Calculate where the camera is looking
             // The scene camera's forward direction determines the look-at point
-            float lookDistance = 5f; // Default distance for the look-at point
+            float lookDistance = DEFAULT_LOOK_DISTANCE; // Default distance for the look-at point
             
             // Try to maintain the current distance between camFollow and camLookAt
             float currentDistance = Vector3.Distance(camFollowLoc.position, camLookAtLoc.position);
@@ -665,71 +677,19 @@ namespace DivineDragon.Windows
             camLookAtContainer.style.width = 400;
             
             // Previous keyframe button
-            camLookAtPrevButton = new Button(() => {
-                var clip = getAttachedClip();
-                var animWindow = GetAnimationWindow();
-                if (clip != null && animWindow != null)
-                {
-                    float prevTime = GetPreviousKeyframeTime(clip, camLookAtLoc, animWindow.time, true, false);
-                    if (prevTime >= 0)
-                    {
-                        animWindow.time = prevTime;
-                        animWindow.Repaint();
-                    }
-                }
+            camLookAtPrevButton = CreateNavigationButton("◄", "Go to previous keyframe", () => {
+                NavigateToKeyframe(camLookAtLoc, true, false, false);
             });
-            camLookAtPrevButton.text = "◄";
-            camLookAtPrevButton.tooltip = "Go to previous keyframe";
-            camLookAtPrevButton.style.width = 20;
-            camLookAtPrevButton.style.height = 20;
-            camLookAtPrevButton.style.marginRight = 2;
-            camLookAtPrevButton.style.fontSize = 12;
             camLookAtContainer.Add(camLookAtPrevButton);
             
-            camLookAtKeyButton = new Button(() => {
-                var clip = getAttachedClip();
-                var animWindow = GetAnimationWindow();
-                if (clip != null && animWindow != null)
-                {
-                    float currentTime = animWindow.time;
-                    if (HasKeyframeAtTime(clip, camLookAtLoc, currentTime, true, false))
-                    {
-                        RemoveKeyframeForTransform(camLookAtLoc, currentTime, true, false);
-                    }
-                    else
-                    {
-                        KeyframeCamLookAt();
-                    }
-                }
-            });
-            camLookAtKeyButton.text = "◆";
-            camLookAtKeyButton.tooltip = "Toggle keyframe for CamLookAt position";
-            camLookAtKeyButton.style.width = 25;
-            camLookAtKeyButton.style.height = 20;
-            camLookAtKeyButton.style.marginRight = 2;
-            camLookAtKeyButton.style.fontSize = 14;
+            camLookAtKeyButton = CreateKeyframeToggleButton("Toggle keyframe for CamLookAt position", camLookAtLoc, true);
             camLookAtContainer.Add(camLookAtKeyButton);
             
             // Next keyframe button
-            camLookAtNextButton = new Button(() => {
-                var clip = getAttachedClip();
-                var animWindow = GetAnimationWindow();
-                if (clip != null && animWindow != null)
-                {
-                    float nextTime = GetNextKeyframeTime(clip, camLookAtLoc, animWindow.time, true, false);
-                    if (nextTime >= 0)
-                    {
-                        animWindow.time = nextTime;
-                        animWindow.Repaint();
-                    }
-                }
+            camLookAtNextButton = CreateNavigationButton("►", "Go to next keyframe", () => {
+                NavigateToKeyframe(camLookAtLoc, true, false, true);
             });
-            camLookAtNextButton.text = "►";
-            camLookAtNextButton.tooltip = "Go to next keyframe";
-            camLookAtNextButton.style.width = 20;
-            camLookAtNextButton.style.height = 20;
             camLookAtNextButton.style.marginRight = 5;
-            camLookAtNextButton.style.fontSize = 12;
             camLookAtContainer.Add(camLookAtNextButton);
             
             var camLookAtField = new Vector3Field("Cam Look At Position");
@@ -1003,7 +963,7 @@ namespace DivineDragon.Windows
                         camFollowRotNextButton.SetEnabled(rotNextTime >= 0);
                     }
                 }
-            }).Every(100);
+            }).Every(UPDATE_INTERVAL_MS);
             
             return section;
         }
@@ -1120,7 +1080,7 @@ namespace DivineDragon.Windows
         private bool HasKeyframeAtTime(AnimationClip clip, Transform transform, float time, bool checkPosition, bool checkRotation)
         {
             string path = AnimationUtility.CalculateTransformPath(transform, animationEditor.transform);
-            float tolerance = 0.001f; // Small tolerance for floating point comparison
+            float tolerance = KEYFRAME_TOLERANCE; // Small tolerance for floating point comparison
             
             if (checkPosition)
             {
@@ -1130,34 +1090,9 @@ namespace DivineDragon.Windows
                 
                 if (xCurve != null && yCurve != null && zCurve != null)
                 {
-                    bool hasX = false, hasY = false, hasZ = false;
-                    
-                    for (int i = 0; i < xCurve.length; i++)
-                    {
-                        if (Mathf.Abs(xCurve[i].time - time) < tolerance)
-                        {
-                            hasX = true;
-                            break;
-                        }
-                    }
-                    
-                    for (int i = 0; i < yCurve.length; i++)
-                    {
-                        if (Mathf.Abs(yCurve[i].time - time) < tolerance)
-                        {
-                            hasY = true;
-                            break;
-                        }
-                    }
-                    
-                    for (int i = 0; i < zCurve.length; i++)
-                    {
-                        if (Mathf.Abs(zCurve[i].time - time) < tolerance)
-                        {
-                            hasZ = true;
-                            break;
-                        }
-                    }
+                    bool hasX = HasKeyframeInCurve(xCurve, time, tolerance);
+                    bool hasY = HasKeyframeInCurve(yCurve, time, tolerance);
+                    bool hasZ = HasKeyframeInCurve(zCurve, time, tolerance);
                     
                     return hasX && hasY && hasZ;
                 }
@@ -1171,34 +1106,9 @@ namespace DivineDragon.Windows
                 
                 if (xCurve != null && yCurve != null && zCurve != null)
                 {
-                    bool hasX = false, hasY = false, hasZ = false;
-                    
-                    for (int i = 0; i < xCurve.length; i++)
-                    {
-                        if (Mathf.Abs(xCurve[i].time - time) < tolerance)
-                        {
-                            hasX = true;
-                            break;
-                        }
-                    }
-                    
-                    for (int i = 0; i < yCurve.length; i++)
-                    {
-                        if (Mathf.Abs(yCurve[i].time - time) < tolerance)
-                        {
-                            hasY = true;
-                            break;
-                        }
-                    }
-                    
-                    for (int i = 0; i < zCurve.length; i++)
-                    {
-                        if (Mathf.Abs(zCurve[i].time - time) < tolerance)
-                        {
-                            hasZ = true;
-                            break;
-                        }
-                    }
+                    bool hasX = HasKeyframeInCurve(xCurve, time, tolerance);
+                    bool hasY = HasKeyframeInCurve(yCurve, time, tolerance);
+                    bool hasZ = HasKeyframeInCurve(zCurve, time, tolerance);
                     
                     return hasX && hasY && hasZ;
                 }
@@ -1223,94 +1133,16 @@ namespace DivineDragon.Windows
             
             if (position)
             {
-                var xCurve = AnimationUtility.GetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "m_LocalPosition.x"));
-                var yCurve = AnimationUtility.GetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "m_LocalPosition.y"));
-                var zCurve = AnimationUtility.GetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "m_LocalPosition.z"));
-                
-                if (xCurve != null)
-                {
-                    for (int i = xCurve.length - 1; i >= 0; i--)
-                    {
-                        if (Mathf.Abs(xCurve[i].time - time) < tolerance)
-                        {
-                            xCurve.RemoveKey(i);
-                            break;
-                        }
-                    }
-                    AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "m_LocalPosition.x"), xCurve);
-                }
-                
-                if (yCurve != null)
-                {
-                    for (int i = yCurve.length - 1; i >= 0; i--)
-                    {
-                        if (Mathf.Abs(yCurve[i].time - time) < tolerance)
-                        {
-                            yCurve.RemoveKey(i);
-                            break;
-                        }
-                    }
-                    AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "m_LocalPosition.y"), yCurve);
-                }
-                
-                if (zCurve != null)
-                {
-                    for (int i = zCurve.length - 1; i >= 0; i--)
-                    {
-                        if (Mathf.Abs(zCurve[i].time - time) < tolerance)
-                        {
-                            zCurve.RemoveKey(i);
-                            break;
-                        }
-                    }
-                    AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "m_LocalPosition.z"), zCurve);
-                }
+                RemoveKeyframeFromCurve(clip, path, "m_LocalPosition.x", time, tolerance);
+                RemoveKeyframeFromCurve(clip, path, "m_LocalPosition.y", time, tolerance);
+                RemoveKeyframeFromCurve(clip, path, "m_LocalPosition.z", time, tolerance);
             }
             
             if (rotation)
             {
-                var xCurve = AnimationUtility.GetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "localEulerAnglesRaw.x"));
-                var yCurve = AnimationUtility.GetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "localEulerAnglesRaw.y"));
-                var zCurve = AnimationUtility.GetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "localEulerAnglesRaw.z"));
-                
-                if (xCurve != null)
-                {
-                    for (int i = xCurve.length - 1; i >= 0; i--)
-                    {
-                        if (Mathf.Abs(xCurve[i].time - time) < tolerance)
-                        {
-                            xCurve.RemoveKey(i);
-                            break;
-                        }
-                    }
-                    AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "localEulerAnglesRaw.x"), xCurve);
-                }
-                
-                if (yCurve != null)
-                {
-                    for (int i = yCurve.length - 1; i >= 0; i--)
-                    {
-                        if (Mathf.Abs(yCurve[i].time - time) < tolerance)
-                        {
-                            yCurve.RemoveKey(i);
-                            break;
-                        }
-                    }
-                    AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "localEulerAnglesRaw.y"), yCurve);
-                }
-                
-                if (zCurve != null)
-                {
-                    for (int i = zCurve.length - 1; i >= 0; i--)
-                    {
-                        if (Mathf.Abs(zCurve[i].time - time) < tolerance)
-                        {
-                            zCurve.RemoveKey(i);
-                            break;
-                        }
-                    }
-                    AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), "localEulerAnglesRaw.z"), zCurve);
-                }
+                RemoveKeyframeFromCurve(clip, path, "localEulerAnglesRaw.x", time, tolerance);
+                RemoveKeyframeFromCurve(clip, path, "localEulerAnglesRaw.y", time, tolerance);
+                RemoveKeyframeFromCurve(clip, path, "localEulerAnglesRaw.z", time, tolerance);
             }
             
             // Mark the clip as dirty to save changes
@@ -1484,6 +1316,109 @@ namespace DivineDragon.Windows
             {
                 AnimationUtility.SetEditorCurve(targetClip, binding, sourceCurve);
             }
+        }
+        
+        // Helper methods for UI creation
+        private Button CreateNavigationButton(string text, string tooltip, Action onClick)
+        {
+            var button = new Button(onClick);
+            button.text = text;
+            button.tooltip = tooltip;
+            button.style.width = 20;
+            button.style.height = 20;
+            button.style.marginRight = 2;
+            button.style.fontSize = 12;
+            return button;
+        }
+        
+        private Button CreateKeyframeToggleButton(string tooltip, Transform transform, bool isPosition)
+        {
+            var button = new Button(() => ToggleKeyframe(transform, isPosition));
+            button.text = "◆";
+            button.tooltip = tooltip;
+            button.style.width = 25;
+            button.style.height = 20;
+            button.style.marginRight = 2;
+            button.style.fontSize = 14;
+            return button;
+        }
+        
+        private void NavigateToKeyframe(Transform transform, bool checkPosition, bool checkRotation, bool goNext)
+        {
+            var clip = getAttachedClip();
+            var animWindow = GetAnimationWindow();
+            if (clip != null && animWindow != null)
+            {
+                float targetTime = goNext 
+                    ? GetNextKeyframeTime(clip, transform, animWindow.time, checkPosition, checkRotation)
+                    : GetPreviousKeyframeTime(clip, transform, animWindow.time, checkPosition, checkRotation);
+                    
+                if (targetTime >= 0)
+                {
+                    animWindow.time = targetTime;
+                    animWindow.Repaint();
+                }
+            }
+        }
+        
+        private void ToggleKeyframe(Transform transform, bool isPosition)
+        {
+            var clip = getAttachedClip();
+            var animWindow = GetAnimationWindow();
+            if (clip != null && animWindow != null)
+            {
+                float currentTime = animWindow.time;
+                if (HasKeyframeAtTime(clip, transform, currentTime, isPosition, !isPosition))
+                {
+                    RemoveKeyframeForTransform(transform, currentTime, isPosition, !isPosition);
+                }
+                else
+                {
+                    if (transform == camLookAtLoc)
+                        KeyframeCamLookAt();
+                    else
+                        SetKeyframeForTransform(transform, isPosition, !isPosition);
+                }
+            }
+        }
+        
+        private bool HasKeyframeInCurve(AnimationCurve curve, float time, float tolerance)
+        {
+            if (curve == null) return false;
+            
+            for (int i = 0; i < curve.length; i++)
+            {
+                if (Mathf.Abs(curve[i].time - time) < tolerance)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        private void RemoveKeyframeFromCurve(AnimationClip clip, string path, string propertyName, float time, float tolerance)
+        {
+            var curve = AnimationUtility.GetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), propertyName));
+            if (curve != null)
+            {
+                for (int i = curve.length - 1; i >= 0; i--)
+                {
+                    if (Mathf.Abs(curve[i].time - time) < tolerance)
+                    {
+                        curve.RemoveKey(i);
+                        break;
+                    }
+                }
+                AnimationUtility.SetEditorCurve(clip, EditorCurveBinding.FloatCurve(path, typeof(Transform), propertyName), curve);
+            }
+        }
+        
+        private void SetBorderRadius(IStyle style, float radius)
+        {
+            style.borderTopLeftRadius = radius;
+            style.borderTopRightRadius = radius;
+            style.borderBottomLeftRadius = radius;
+            style.borderBottomRightRadius = radius;
         }
     }
     
