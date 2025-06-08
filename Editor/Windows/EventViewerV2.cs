@@ -1313,6 +1313,7 @@ namespace DivineDragon.Windows
         {
             public float time;
             public string functionName;
+            public string displayName; // Added for reference only, not used when pasting
             public float floatParameter;
             public int intParameter;
             public string stringParameter;
@@ -1336,6 +1337,13 @@ namespace DivineDragon.Windows
                     result.objectReferenceType = evt.objectReferenceParameter.GetType().AssemblyQualifiedName;
                 }
 
+                return result;
+            }
+            
+            public static SerializableAnimationEvent FromParsedEvent(ParsedEngageAnimationEvent parsedEvt)
+            {
+                var result = FromAnimationEvent(parsedEvt.backingAnimationEvent);
+                result.displayName = parsedEvt.displayName;
                 return result;
             }
 
@@ -1430,7 +1438,7 @@ namespace DivineDragon.Windows
 
         private void CopyMultipleEventsToClipboard(List<ParsedEngageAnimationEvent> events)
         {
-            var serializedEvents = events.Select(evt => SerializableAnimationEvent.FromAnimationEvent(evt.backingAnimationEvent)).ToList();
+            var serializedEvents = events.Select(evt => SerializableAnimationEvent.FromParsedEvent(evt)).ToList();
             var data = JsonUtility.ToJson(new SerializableAnimationEventList { events = serializedEvents }, true);
             EditorGUIUtility.systemCopyBuffer = data;
             Debug.Log($"Copied {events.Count} events to clipboard");
