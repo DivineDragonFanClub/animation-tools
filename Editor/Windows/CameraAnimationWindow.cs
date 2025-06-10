@@ -392,14 +392,14 @@ namespace DivineDragon.Windows
                 
                 var copySceneCameraButton = new Button(() => CopySceneCameraTransform())
                 {
-                    text = "Copy Scene Camera Angle",
+                    text = "Copy Scene Angle",
                     tooltip = "Copy position and rotation from the Scene view camera"
                 };
                 secondRow.Add(copySceneCameraButton);
                 
                 var applyToSceneCameraButton = new Button(() => ApplyToSceneCamera())
                 {
-                    text = "Apply Camera Angle to Scene",
+                    text = "Apply Preview to Scene",
                     tooltip = "Apply current preview camera view to the Scene view camera (excluding Dutch tilt)"
                 };
                 applyToSceneCameraButton.style.marginLeft = 5;
