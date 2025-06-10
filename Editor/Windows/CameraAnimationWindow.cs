@@ -36,9 +36,9 @@ namespace DivineDragon.Windows
         private Vector2 lastMousePosition;
         private bool isDragging = false;
         
-        // Camera transform references
-        private Transform camLookAtLoc;
-        private Transform camFollowLoc;
+        // Camera transform references - fetched lazily to avoid null reference issues after builds
+        private Transform camLookAtLoc => animationEditor?.transform.Find("c_trans/camLookAt_loc");
+        private Transform camFollowLoc => animationEditor?.transform.Find("c_trans/camFollow_loc");
         
         // Cached values for detecting changes
         private Vector3 lastCamLookAtPos;
@@ -73,6 +73,16 @@ namespace DivineDragon.Windows
             SavePreferences();
             EditorApplication.update -= OnUpdate;
             CleanupPreviewCamera();
+        }
+        
+        private void OnFocus()
+        {
+            // When window regains focus, check if render texture needs recreation
+            if (previewRenderTexture != null && !previewRenderTexture.IsCreated())
+            {
+                Debug.Log("Window focused - recreating render texture");
+                SetupPreviewCamera();
+            }
         }
         
         private void SetupPreviewCamera()
@@ -167,8 +177,15 @@ namespace DivineDragon.Windows
         
         private void LateUpdatePreviewCamera()
         {
+            // Check if render texture needs to be recreated (can happen after builds)
+            if (previewRenderTexture != null && !previewRenderTexture.IsCreated())
+            {
+                Debug.Log("Render texture was released, recreating...");
+                SetupPreviewCamera();
+            }
+            
             // Update and render preview camera
-            if (previewCamera != null)
+            if (previewCamera != null && previewRenderTexture != null && previewRenderTexture.IsCreated())
             {
                 UpdatePreviewCamera();
                 previewCamera.Render();
@@ -208,9 +225,6 @@ namespace DivineDragon.Windows
             container.style.paddingLeft = 10;
             container.style.paddingRight = 10;
             
-            // Get transform references
-            UpdateTransformReferences();
-            
             if (camLookAtLoc == null || camFollowLoc == null)
             {
                 var warning = new HelpBox("Camera transforms not found. Make sure you have selected an object with AnimationEditor component.", HelpBoxMessageType.Warning);
@@ -240,23 +254,6 @@ namespace DivineDragon.Windows
             EditorApplication.update -= OnUpdate;
             EditorApplication.update += OnUpdate;
         }
-        
-        private void UpdateTransformReferences()
-        {
-            if (animationEditor == null) 
-            {
-                Debug.LogWarning("animationEditor is null in UpdateTransformReferences");
-                return;
-            }
-            
-            camLookAtLoc = animationEditor.transform.Find("c_trans/camLookAt_loc");
-            camFollowLoc = animationEditor.transform.Find("c_trans/camFollow_loc");
-            
-            Debug.Log($"Transform references updated - camLookAtLoc: {camLookAtLoc}, camFollowLoc: {camFollowLoc}");
-            
-            UpdateCachedTransforms();
-        }
-        
         
         private VisualElement CreateCameraPreviewSection()
         {
@@ -302,7 +299,13 @@ namespace DivineDragon.Windows
                 // Create preview container
                 var previewContainer = new IMGUIContainer(() =>
                 {
-                    if (previewRenderTexture == null) return;
+                    // Check if render texture is valid
+                    if (previewRenderTexture == null || !previewRenderTexture.IsCreated())
+                    {
+                        // Try to recreate it
+                        SetupPreviewCamera();
+                        if (previewRenderTexture == null) return;
+                    }
                     
                     // Make the preview responsive to window width
                     float windowWidth = position.width - 40; // Account for padding
@@ -320,7 +323,15 @@ namespace DivineDragon.Windows
                     LateUpdatePreviewCamera();
                     
                     // Draw the preview texture
-                    GUI.DrawTexture(rect, previewRenderTexture, ScaleMode.ScaleToFit);
+                    if (previewRenderTexture != null && previewRenderTexture.IsCreated())
+                    {
+                        GUI.DrawTexture(rect, previewRenderTexture, ScaleMode.ScaleToFit);
+                    }
+                    else
+                    {
+                        // Show a message if texture is still not available
+                        GUI.Label(rect, "Camera preview unavailable - rebuilding...", GUI.skin.box);
+                    }
                 });
                 
                 previewContainer.style.flexGrow = 1;
@@ -473,6 +484,7 @@ namespace DivineDragon.Windows
             if (autoKeyframe)
             {
                 Debug.Log("Auto-keyframing from pan");
+                FocusAnimationWindow();
                 KeyframeCurrentPose();
             }
         }
@@ -494,6 +506,7 @@ namespace DivineDragon.Windows
             if (autoKeyframe)
             {
                 Debug.Log("Auto-keyframing from zoom");
+                FocusAnimationWindow();
                 KeyframeCurrentPose();
             }
         }
@@ -526,6 +539,7 @@ namespace DivineDragon.Windows
             if (autoKeyframe)
             {
                 Debug.Log("Auto-keyframing from dutch tilt");
+                FocusAnimationWindow();
                 KeyframeCurrentPose();
             }
         }
@@ -584,6 +598,7 @@ namespace DivineDragon.Windows
             if (autoKeyframe)
             {
                 Debug.Log("Auto-keyframing from scene camera copy");
+                FocusAnimationWindow();
                 KeyframeCurrentPose();
             }
             
@@ -698,6 +713,7 @@ namespace DivineDragon.Windows
                 if (autoKeyframe)
                 {
                     Debug.Log("Auto-keyframing from CamLookAt field edit");
+                    FocusAnimationWindow();
                     KeyframeCurrentPose();
                 }
             });
@@ -713,25 +729,9 @@ namespace DivineDragon.Windows
             camFollowPosContainer.style.width = 400;
             
             // Previous keyframe button
-            camFollowPosPrevButton = new Button(() => {
-                var clip = getAttachedClip();
-                var animWindow = GetAnimationWindow();
-                if (clip != null && animWindow != null)
-                {
-                    float prevTime = GetPreviousKeyframeTime(clip, camFollowLoc, animWindow.time, true, false);
-                    if (prevTime >= 0)
-                    {
-                        animWindow.time = prevTime;
-                        animWindow.Repaint();
-                    }
-                }
+            camFollowPosPrevButton = CreateNavigationButton("◄", "Go to previous keyframe", () => {
+                NavigateToKeyframe(camFollowLoc, true, false, false);
             });
-            camFollowPosPrevButton.text = "◄";
-            camFollowPosPrevButton.tooltip = "Go to previous keyframe";
-            camFollowPosPrevButton.style.width = 20;
-            camFollowPosPrevButton.style.height = 20;
-            camFollowPosPrevButton.style.marginRight = 2;
-            camFollowPosPrevButton.style.fontSize = 12;
             camFollowPosContainer.Add(camFollowPosPrevButton);
             
             camFollowPosKeyButton = new Button(() => {
@@ -759,25 +759,10 @@ namespace DivineDragon.Windows
             camFollowPosContainer.Add(camFollowPosKeyButton);
             
             // Next keyframe button
-            camFollowPosNextButton = new Button(() => {
-                var clip = getAttachedClip();
-                var animWindow = GetAnimationWindow();
-                if (clip != null && animWindow != null)
-                {
-                    float nextTime = GetNextKeyframeTime(clip, camFollowLoc, animWindow.time, true, false);
-                    if (nextTime >= 0)
-                    {
-                        animWindow.time = nextTime;
-                        animWindow.Repaint();
-                    }
-                }
+            camFollowPosNextButton = CreateNavigationButton("►", "Go to next keyframe", () => {
+                NavigateToKeyframe(camFollowLoc, true, false, true);
             });
-            camFollowPosNextButton.text = "►";
-            camFollowPosNextButton.tooltip = "Go to next keyframe";
-            camFollowPosNextButton.style.width = 20;
-            camFollowPosNextButton.style.height = 20;
             camFollowPosNextButton.style.marginRight = 5;
-            camFollowPosNextButton.style.fontSize = 12;
             camFollowPosContainer.Add(camFollowPosNextButton);
             
             var camFollowPosField = new Vector3Field("Cam Follow Position");
@@ -792,6 +777,7 @@ namespace DivineDragon.Windows
                 if (autoKeyframe)
                 {
                     Debug.Log("Auto-keyframing from CamFollow position field edit");
+                    FocusAnimationWindow();
                     KeyframeCurrentPose();
                 }
             });
@@ -807,25 +793,9 @@ namespace DivineDragon.Windows
             camFollowRotContainer.style.width = 400;
             
             // Previous keyframe button
-            camFollowRotPrevButton = new Button(() => {
-                var clip = getAttachedClip();
-                var animWindow = GetAnimationWindow();
-                if (clip != null && animWindow != null)
-                {
-                    float prevTime = GetPreviousKeyframeTime(clip, camFollowLoc, animWindow.time, false, true);
-                    if (prevTime >= 0)
-                    {
-                        animWindow.time = prevTime;
-                        animWindow.Repaint();
-                    }
-                }
+            camFollowRotPrevButton = CreateNavigationButton("◄", "Go to previous keyframe", () => {
+                NavigateToKeyframe(camFollowLoc, false, true, false);
             });
-            camFollowRotPrevButton.text = "◄";
-            camFollowRotPrevButton.tooltip = "Go to previous keyframe";
-            camFollowRotPrevButton.style.width = 20;
-            camFollowRotPrevButton.style.height = 20;
-            camFollowRotPrevButton.style.marginRight = 2;
-            camFollowRotPrevButton.style.fontSize = 12;
             camFollowRotContainer.Add(camFollowRotPrevButton);
             
             camFollowRotKeyButton = new Button(() => {
@@ -853,25 +823,10 @@ namespace DivineDragon.Windows
             camFollowRotContainer.Add(camFollowRotKeyButton);
             
             // Next keyframe button
-            camFollowRotNextButton = new Button(() => {
-                var clip = getAttachedClip();
-                var animWindow = GetAnimationWindow();
-                if (clip != null && animWindow != null)
-                {
-                    float nextTime = GetNextKeyframeTime(clip, camFollowLoc, animWindow.time, false, true);
-                    if (nextTime >= 0)
-                    {
-                        animWindow.time = nextTime;
-                        animWindow.Repaint();
-                    }
-                }
+            camFollowRotNextButton = CreateNavigationButton("►", "Go to next keyframe", () => {
+                NavigateToKeyframe(camFollowLoc, false, true, true);
             });
-            camFollowRotNextButton.text = "►";
-            camFollowRotNextButton.tooltip = "Go to next keyframe";
-            camFollowRotNextButton.style.width = 20;
-            camFollowRotNextButton.style.height = 20;
             camFollowRotNextButton.style.marginRight = 5;
-            camFollowRotNextButton.style.fontSize = 12;
             camFollowRotContainer.Add(camFollowRotNextButton);
             
             var camFollowRotField = new Vector3Field("Cam Follow Rotation");
@@ -886,6 +841,7 @@ namespace DivineDragon.Windows
                 if (autoKeyframe)
                 {
                     Debug.Log("Auto-keyframing from CamFollow rotation field edit");
+                    FocusAnimationWindow();
                     KeyframeCurrentPose();
                 }
             });
@@ -964,6 +920,8 @@ namespace DivineDragon.Windows
         
         private void KeyframeCurrentPose()
         {
+            // Focus the animation window when keyframing
+            FocusAnimationWindow();
             KeyframeCamLookAt();
             KeyframeCamFollow();
             UpdateCachedTransforms();
@@ -984,6 +942,15 @@ namespace DivineDragon.Windows
         
         private void SetKeyframeForTransform(Transform transform, bool position, bool rotation)
         {
+            if (transform == null)
+            {
+                Debug.LogError("Transform is null in SetKeyframeForTransform");
+                return;
+            }
+            
+            // Focus the animation window and select the game object
+            FocusAnimationWindow();
+            
             var animWindow = GetAnimationWindow();
             if (animWindow == null) 
             {
@@ -995,6 +962,12 @@ namespace DivineDragon.Windows
             if (clip == null) 
             {
                 Debug.LogError("Animation clip is null");
+                return;
+            }
+            
+            if (animationEditor == null)
+            {
+                Debug.LogError("Animation editor is null");
                 return;
             }
             
@@ -1068,6 +1041,8 @@ namespace DivineDragon.Windows
         
         private bool HasKeyframeAtTime(AnimationClip clip, Transform transform, float time, bool checkPosition, bool checkRotation)
         {
+            if (transform == null || animationEditor == null) return false;
+            
             string path = AnimationUtility.CalculateTransformPath(transform, animationEditor.transform);
             float tolerance = KEYFRAME_TOLERANCE; // Small tolerance for floating point comparison
             
@@ -1108,6 +1083,8 @@ namespace DivineDragon.Windows
         
         private void RemoveKeyframeForTransform(Transform transform, float time, bool position, bool rotation)
         {
+            if (transform == null || animationEditor == null) return;
+            
             var animWindow = GetAnimationWindow();
             if (animWindow == null) return;
             
@@ -1146,6 +1123,8 @@ namespace DivineDragon.Windows
         
         private float GetNextKeyframeTime(AnimationClip clip, Transform transform, float currentTime, bool checkPosition, bool checkRotation)
         {
+            if (transform == null || animationEditor == null) return -1f;
+            
             string path = AnimationUtility.CalculateTransformPath(transform, animationEditor.transform);
             float nextTime = float.MaxValue;
             float tolerance = 0.001f;
@@ -1185,6 +1164,8 @@ namespace DivineDragon.Windows
         
         private float GetPreviousKeyframeTime(AnimationClip clip, Transform transform, float currentTime, bool checkPosition, bool checkRotation)
         {
+            if (transform == null || animationEditor == null) return -1f;
+            
             string path = AnimationUtility.CalculateTransformPath(transform, animationEditor.transform);
             float prevTime = -1f;
             float tolerance = 0.001f;
@@ -1344,6 +1325,8 @@ namespace DivineDragon.Windows
                     
                 if (targetTime >= 0)
                 {
+                    // Focus the animation window before navigating
+                    FocusAnimationWindow();
                     animWindow.time = targetTime;
                     animWindow.Repaint();
                 }
@@ -1408,6 +1391,22 @@ namespace DivineDragon.Windows
             style.borderTopRightRadius = radius;
             style.borderBottomLeftRadius = radius;
             style.borderBottomRightRadius = radius;
+        }
+        
+        private void FocusAnimationWindow()
+        {
+            // Select the game object that has the AnimationEditor component
+            if (animationEditor != null)
+            {
+                Selection.activeGameObject = animationEditor.gameObject;
+            }
+            
+            // Focus the Animation window
+            Type animationWindowType = Type.GetType("UnityEditor.AnimationWindow,UnityEditor");
+            if (animationWindowType != null)
+            {
+                EditorWindow.FocusWindowIfItsOpen(animationWindowType);
+            }
         }
     }
     
