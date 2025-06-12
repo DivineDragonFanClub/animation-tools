@@ -314,6 +314,19 @@ namespace DivineDragon.Windows
                     if (newIndex != -1)
                     {
                         listView.ScrollToItem(newIndex);
+                        
+                        // Find the newly added event
+                        var newEvent = filteredEvents.FirstOrDefault(item => item.Uuid == newUuid);
+                        if (newEvent != null)
+                        {
+                            // Check if this is a default/empty event that needs configuration
+                            // (Unity creates events with functionName "" when added through Animation Window)
+                            if (string.IsNullOrEmpty(newEvent.backingAnimationEvent.functionName))
+                            {
+                                // Show the event search popup to configure the event type
+                                ShowAddEventSearchPopup(changedClip, newEvent.backingAnimationEvent.time, newEvent);
+                            }
+                        }
                     }
                 }
                 else if (selectedEvents.Count != 0)
@@ -706,6 +719,97 @@ namespace DivineDragon.Windows
 
             operationsPanel = new VisualElement();
             operationsPanel.style.flexDirection = FlexDirection.Column;
+
+            // Add right-click context menu to the list view
+            listView.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                // Capture the mouse position when the context menu is opened
+                Vector2 mousePosition = evt.mousePosition;
+                
+                // Only show "Add new event here" if 0 or 1 event is selected
+                if (selectedEvents.Count <= 1)
+                {
+                    // Get the time to use - either from selected event or current playhead
+                    float targetTime = editor.time;
+                    if (selectedEvents.Count == 1)
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var firstSelectedEvent = events.FirstOrDefault(item => item.Uuid == selectedEvents[0]);
+                        if (firstSelectedEvent != null)
+                        {
+                            targetTime = firstSelectedEvent.backingAnimationEvent.time;
+                        }
+                    }
+                    
+                    evt.menu.AppendAction("Add new event here", (a) =>
+                    {
+                        ShowAddEventSearchPopup(currentClip, targetTime, null, mousePosition);
+                    });
+                }
+                
+                evt.menu.AppendSeparator("");
+                
+                // Copy selected events
+                evt.menu.AppendAction("Copy Selected Events", (a) =>
+                {
+                    if (selectedEvents.Count > 0)
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var selectedEventItems = selectedEvents
+                            .Select(uuid => events.FirstOrDefault(item => item.Uuid == uuid))
+                            .Where(item => item != null)
+                            .ToList();
+                        
+                        if (selectedEventItems.Count == 1)
+                        {
+                            CopyEventToClipboard(selectedEventItems[0]);
+                        }
+                        else if (selectedEventItems.Count > 1)
+                        {
+                            CopyMultipleEventsToClipboard(selectedEventItems);
+                        }
+                    }
+                }, (a) => selectedEvents.Count > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                
+                // Paste events
+                evt.menu.AppendAction("Paste Events", (a) =>
+                {
+                    var clipData = EditorGUIUtility.systemCopyBuffer;
+                    var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                    if (eventList != null && eventList.events != null)
+                    {
+                        var eventsToPaste = eventList.events.Select(e => e.ToAnimationEvent()).ToList();
+                        foreach (var animEvent in eventsToPaste)
+                        {
+                            AnimationClipWatcher.AddEventProgrammatically(currentClip, animEvent, "Paste Events");
+                        }
+                    }
+                }, (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                
+                evt.menu.AppendSeparator("");
+                
+                // Delete selected events
+                evt.menu.AppendAction("Delete Selected Events", (a) =>
+                {
+                    if (selectedEvents.Count > 0)
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var selectedEventItems = selectedEvents
+                            .Select(uuid => events.FirstOrDefault(item => item.Uuid == uuid))
+                            .Where(item => item != null)
+                            .ToList();
+                        
+                        if (selectedEventItems.Count == 1)
+                        {
+                            DeleteAnimationEvent(currentClip, selectedEventItems[0]);
+                        }
+                        else if (selectedEventItems.Count > 1)
+                        {
+                            DeleteMultipleAnimationEvents(currentClip, selectedEventItems);
+                        }
+                    }
+                }, (a) => selectedEvents.Count > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+            }));
 
             // Handle selection changes
             listView.onSelectionChange += objects =>
@@ -1675,6 +1779,31 @@ namespace DivineDragon.Windows
             window.ShowUtility();
         }
         
+        private void ShowAddEventSearchPopup(AnimationClip clip, float time, ParsedEngageAnimationEvent eventToModify = null, Vector2? contextMenuPosition = null)
+        {
+            // Create a popup window
+            var searchWindow = ScriptableObject.CreateInstance<AddEventSearchWindow>();
+            
+            // Get mouse position - use provided position from context menu if available
+            Vector2 mousePos;
+            if (contextMenuPosition.HasValue)
+            {
+                // Convert the local position to screen position
+                mousePos = GUIUtility.GUIToScreenPoint(contextMenuPosition.Value);
+            }
+            else
+            {
+                // Fallback to current event position or default
+                mousePos = GUIUtility.GUIToScreenPoint(Event.current?.mousePosition ?? new Vector2(100, 100));
+            }
+            
+            searchWindow.position = new Rect(mousePos.x, mousePos.y, 300, 400);
+            searchWindow.targetClip = clip;
+            searchWindow.targetTime = time;
+            searchWindow.eventToModify = eventToModify;
+            searchWindow.ShowAsDropDown(searchWindow.position, new Vector2(300, 400));
+        }
+        
         public void ImportEventsFromClip(AnimationClip sourceClip)
         {
             if (sourceClip == null) return;
@@ -1745,6 +1874,249 @@ namespace DivineDragon.Windows
             }
             
             EditorGUILayout.EndHorizontal();
+        }
+    }
+    
+    public class AddEventSearchWindow : EditorWindow
+    {
+        public AnimationClip targetClip;
+        public float targetTime;
+        public ParsedEngageAnimationEvent eventToModify;
+        
+        private string searchTerm = "";
+        private Vector2 scrollPosition;
+        private List<EngageAnimationEventParser<ParsedEngageAnimationEvent>> filteredEvents;
+        private TextField searchField;
+        
+        private void OnEnable()
+        {
+            titleContent = new GUIContent("Add Event");
+        }
+        
+        private void CreateGUI()
+        {
+            var root = rootVisualElement;
+            root.style.paddingTop = 5;
+            root.style.paddingLeft = 5;
+            root.style.paddingRight = 5;
+            root.style.paddingBottom = 5;
+            
+            // Handle Escape key
+            root.RegisterCallback<KeyDownEvent>(evt =>
+            {
+                if (evt.keyCode == KeyCode.Escape)
+                {
+                    // If we were modifying an event and user cancels, delete the empty event
+                    if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimationEvent.functionName))
+                    {
+                        AnimationClipWatcher.DeleteEventProgrammatically(targetClip, eventToModify, "Cancel Event Creation");
+                    }
+                    Close();
+                    evt.StopPropagation();
+                }
+            });
+            
+            // Create search field
+            searchField = new TextField("Search");
+            searchField.style.marginBottom = 10;
+            searchField.RegisterValueChangedCallback(evt => 
+            {
+                searchTerm = evt.newValue;
+                FilterEvents();
+            });
+            
+            // Handle Enter key in search field
+            searchField.RegisterCallback<KeyDownEvent>(evt =>
+            {
+                if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                {
+                    // If there's exactly one filtered event, select it
+                    if (filteredEvents != null && filteredEvents.Count == 1)
+                    {
+                        AddEvent(filteredEvents[0]);
+                        evt.StopPropagation();
+                    }
+                }
+            });
+            
+            root.Add(searchField);
+            
+            // Create scroll view for results
+            var scrollView = new ScrollView();
+            scrollView.style.flexGrow = 1;
+            
+            // Container for filtered results
+            var resultsContainer = new VisualElement();
+            scrollView.Add(resultsContainer);
+            root.Add(scrollView);
+            
+            // Add cancel button at the bottom
+            var cancelButton = new Button(() =>
+            {
+                // If we were modifying an event and user cancels, delete the empty event
+                if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimationEvent.functionName))
+                {
+                    AnimationClipWatcher.DeleteEventProgrammatically(targetClip, eventToModify, "Cancel Event Creation");
+                }
+                Close();
+            })
+            {
+                text = "Cancel",
+                style =
+                {
+                    marginTop = 10,
+                    height = 25
+                }
+            };
+            root.Add(cancelButton);
+            
+            // Focus search field
+            searchField.Focus();
+            searchField.SelectAll();
+            
+            // Initial filter
+            FilterEvents();
+            
+            // Update UI with filtered results
+            void UpdateResults()
+            {
+                resultsContainer.Clear();
+                
+                if (filteredEvents == null || filteredEvents.Count == 0)
+                {
+                    var noResultsLabel = new Label("No events found");
+                    noResultsLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+                    noResultsLabel.style.marginTop = 20;
+                    resultsContainer.Add(noResultsLabel);
+                    return;
+                }
+                
+                // Group by category
+                var categorized = new Dictionary<ParsedEngageAnimationEvent.EventCategory, List<EngageAnimationEventParser<ParsedEngageAnimationEvent>>>();
+                foreach (var evt in filteredEvents)
+                {
+                    var category = evt.sampleParsedEvent.category;
+                    if (!categorized.ContainsKey(category))
+                        categorized[category] = new List<EngageAnimationEventParser<ParsedEngageAnimationEvent>>();
+                    categorized[category].Add(evt);
+                }
+                
+                // Display categorized results
+                foreach (var kvp in categorized.OrderBy(x => x.Key))
+                {
+                    if (kvp.Value.Count == 0) continue;
+                    
+                    // Category header
+                    var categoryLabel = new Label(kvp.Key.GetDescription());
+                    categoryLabel.style.fontSize = 12;
+                    categoryLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+                    categoryLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
+                    categoryLabel.style.marginTop = 10;
+                    categoryLabel.style.marginBottom = 5;
+                    resultsContainer.Add(categoryLabel);
+                    
+                    // Event buttons
+                    foreach (var parser in kvp.Value)
+                    {
+                        var button = new Button(() =>
+                        {
+                            AddEvent(parser);
+                        })
+                        {
+                            text = parser.sampleParsedEvent.displayName,
+                            tooltip = parser.sampleParsedEvent.Explanation
+                        };
+                        button.style.marginLeft = 10;
+                        button.style.marginTop = 2;
+                        button.style.marginBottom = 2;
+                        resultsContainer.Add(button);
+                    }
+                }
+                
+                // Add hint if there's only one result
+                if (filteredEvents.Count == 1)
+                {
+                    var hintLabel = new Label("(Press Enter to create)")
+                    {
+                        style =
+                        {
+                            fontSize = 11,
+                            color = new Color(0.7f, 0.7f, 0.7f),
+                            unityFontStyleAndWeight = FontStyle.Italic,
+                            marginTop = 10,
+                            unityTextAlign = TextAnchor.MiddleCenter
+                        }
+                    };
+                    resultsContainer.Add(hintLabel);
+                }
+            }
+            
+            // Store update function for filtering
+            searchField.userData = new System.Action(UpdateResults);
+            UpdateResults();
+        }
+        
+        private void FilterEvents()
+        {
+            var allEvents = AnimationEventParser.SupportedEvents;
+            
+            if (string.IsNullOrEmpty(searchTerm))
+            {
+                filteredEvents = allEvents;
+            }
+            else
+            {
+                var lowerSearchTerm = searchTerm.ToLower();
+                filteredEvents = allEvents.Where(e =>
+                {
+                    // Search in display name
+                    if (e.sampleParsedEvent.displayName.ToLower().Contains(lowerSearchTerm))
+                        return true;
+                        
+                    // Search in original/Japanese names
+                    foreach (var rule in e.matchRules)
+                    {
+                        if (rule is FunctionNameMatchRule fnRule && fnRule.functionName.ToLower().Contains(lowerSearchTerm))
+                            return true;
+                        if (rule is FunctionNameStringParameterMatchRule fnsRule && fnsRule.stringParameter.ToLower().Contains(lowerSearchTerm))
+                            return true;
+                    }
+                    
+                    return false;
+                }).ToList();
+            }
+            
+            // Update UI if it exists
+            if (searchField?.userData is System.Action updateAction)
+            {
+                updateAction();
+            }
+        }
+        
+        private void AddEvent(EngageAnimationEventParser<ParsedEngageAnimationEvent> parser)
+        {
+            if (targetClip == null) return;
+            
+            if (eventToModify != null)
+            {
+                // Modify the existing event
+                var modifiedEvent = parser.Create();
+                modifiedEvent.time = eventToModify.backingAnimationEvent.time; // Keep original time
+                
+                // Replace the event with the configured version
+                AnimationClipWatcher.ReplaceEventProgrammatically(targetClip, eventToModify, modifiedEvent, 
+                    $"Configure Event as {parser.sampleParsedEvent.displayName}");
+            }
+            else
+            {
+                // Create a new event
+                var newEvent = parser.Create();
+                newEvent.time = targetTime;
+                AnimationClipWatcher.AddEventProgrammatically(targetClip, newEvent, 
+                    $"Add {parser.sampleParsedEvent.displayName} Event");
+            }
+            
+            Close();
         }
     }
 }
