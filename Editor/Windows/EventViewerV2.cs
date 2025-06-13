@@ -727,10 +727,9 @@ namespace DivineDragon.Windows
                 // Capture the mouse position when the context menu is opened
                 Vector2 mousePosition = evt.mousePosition;
                 
-                // Only show "Add new event here" if 0 or 1 event is selected
+                // Add new event - only show if 0 or 1 event is selected
                 if (selectedEvents.Count <= 1)
                 {
-                    // Get the time to use - either from selected event or current playhead
                     float targetTime = editor.time;
                     if (selectedEvents.Count == 1)
                     {
@@ -742,7 +741,7 @@ namespace DivineDragon.Windows
                         }
                     }
                     
-                    evt.menu.AppendAction("Add new event here", (a) =>
+                    evt.menu.AppendAction($"Add new event here ({targetTime:F2}s)", (a) =>
                     {
                         ShowAddEventSearchPopup(currentClip, targetTime, null, mousePosition);
                     });
@@ -750,27 +749,31 @@ namespace DivineDragon.Windows
                 
                 evt.menu.AppendSeparator("");
                 
-                // Copy selected events
-                evt.menu.AppendAction("Copy Selected Events", (a) =>
+                // Copy functionality
+                if (selectedEvents.Count == 1)
                 {
-                    if (selectedEvents.Count > 0)
+                    evt.menu.AppendAction("Copy Event", (a) =>
                     {
                         var events = AnimationClipWatcher.GetParsedEvents(currentClip);
-                        var selectedEventItems = selectedEvents
-                            .Select(uuid => events.FirstOrDefault(item => item.Uuid == uuid))
-                            .Where(item => item != null)
+                        var eventToCopy = events.FirstOrDefault(e => e.Uuid == selectedEvents[0]);
+                        if (eventToCopy != null)
+                        {
+                            CopyEventToClipboard(eventToCopy);
+                        }
+                    });
+                }
+                else if (selectedEvents.Count > 1)
+                {
+                    evt.menu.AppendAction($"Copy {selectedEvents.Count} Events", (a) =>
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var selectedItems = selectedEvents
+                            .Select(uuid => events.FirstOrDefault(e => e.Uuid == uuid))
+                            .Where(e => e != null)
                             .ToList();
-                        
-                        if (selectedEventItems.Count == 1)
-                        {
-                            CopyEventToClipboard(selectedEventItems[0]);
-                        }
-                        else if (selectedEventItems.Count > 1)
-                        {
-                            CopyMultipleEventsToClipboard(selectedEventItems);
-                        }
-                    }
-                }, (a) => selectedEvents.Count > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                        CopyMultipleEventsToClipboard(selectedItems);
+                    });
+                }
                 
                 // Paste events
                 evt.menu.AppendAction("Paste Events", (a) =>
@@ -789,27 +792,45 @@ namespace DivineDragon.Windows
                 
                 evt.menu.AppendSeparator("");
                 
-                // Delete selected events
-                evt.menu.AppendAction("Delete Selected Events", (a) =>
+                // Duplicate option for single selection
+                if (selectedEvents.Count == 1)
                 {
-                    if (selectedEvents.Count > 0)
+                    evt.menu.AppendAction("Duplicate Event", (a) =>
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var eventToDuplicate = events.FirstOrDefault(e => e.Uuid == selectedEvents[0]);
+                        if (eventToDuplicate != null)
+                        {
+                            DuplicateEvent(eventToDuplicate);
+                        }
+                    });
+                }
+                
+                // Delete functionality
+                if (selectedEvents.Count == 1)
+                {
+                    evt.menu.AppendAction("Delete Event", (a) =>
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var eventToDelete = events.FirstOrDefault(e => e.Uuid == selectedEvents[0]);
+                        if (eventToDelete != null)
+                        {
+                            DeleteAnimationEvent(currentClip, eventToDelete);
+                        }
+                    });
+                }
+                else if (selectedEvents.Count > 1)
+                {
+                    evt.menu.AppendAction($"Delete {selectedEvents.Count} Events", (a) =>
                     {
                         var events = AnimationClipWatcher.GetParsedEvents(currentClip);
                         var selectedEventItems = selectedEvents
                             .Select(uuid => events.FirstOrDefault(item => item.Uuid == uuid))
                             .Where(item => item != null)
                             .ToList();
-                        
-                        if (selectedEventItems.Count == 1)
-                        {
-                            DeleteAnimationEvent(currentClip, selectedEventItems[0]);
-                        }
-                        else if (selectedEventItems.Count > 1)
-                        {
-                            DeleteMultipleAnimationEvents(currentClip, selectedEventItems);
-                        }
-                    }
-                }, (a) => selectedEvents.Count > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                        DeleteMultipleAnimationEvents(currentClip, selectedEventItems);
+                    });
+                }
             }));
 
             // Handle selection changes
@@ -1307,7 +1328,7 @@ namespace DivineDragon.Windows
             summaryContainer.style.paddingTop = 5;
             itemContainer.Add(summaryContainer);
 
-            itemContainer.AddManipulator(new ContextualMenuManipulator(BuildContextMenu));
+            // Context menu is handled at the list level
 
             return itemContainer;
         }
@@ -1803,7 +1824,7 @@ namespace DivineDragon.Windows
             searchWindow.targetClip = clip;
             searchWindow.targetTime = time;
             searchWindow.eventToModify = eventToModify;
-            searchWindow.ShowAsDropDown(searchWindow.position, new Vector2(600, 400));
+            searchWindow.ShowUtility();
         }
         
         public void ImportEventsFromClip(AnimationClip sourceClip)
@@ -1988,10 +2009,20 @@ namespace DivineDragon.Windows
                         evt.PreventDefault();
                     }
                 }
+                else if (evt.keyCode == KeyCode.Escape)
+                {
+                    if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimationEvent.functionName))
+                    {
+                        AnimationClipWatcher.DeleteEventProgrammatically(targetClip, eventToModify, "Cancel Event Creation");
+                    }
+                    Close();
+                    evt.StopPropagation();
+                    evt.PreventDefault();
+                }
             }, TrickleDown.TrickleDown);
             
             root.Add(searchField);
-            var hintsLabel = new Label("↑↓ Navigate • Enter Select • Esc Cancel")
+            var hintsLabel = new Label("↑↓ Navigate • Enter Select • Esc Close")
             {
                 style =
                 {
@@ -2041,24 +2072,6 @@ namespace DivineDragon.Windows
             bottomControls.style.justifyContent = Justify.FlexEnd;
             bottomControls.style.flexShrink = 0;
             bottomControls.style.height = 25;
-            var cancelButton = new Button(() =>
-            {
-if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimationEvent.functionName))
-                {
-                    AnimationClipWatcher.DeleteEventProgrammatically(targetClip, eventToModify, "Cancel Event Creation");
-                }
-                Close();
-            })
-            {
-                text = "Cancel",
-                style =
-                {
-                    height = 25,
-                    width = 80,
-                    marginRight = 5
-                }
-            };
-            bottomControls.Add(cancelButton);
             var createButton = new Button(() =>
             {
                 if (selectedIndex >= 0 && selectedIndex < filteredEvents.Count)
@@ -2426,21 +2439,11 @@ if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimation
             {
                 var lowerSearchTerm = searchTerm.ToLower();
                 
-                // Add search aliases
-                var searchAliases = GetSearchAliases(lowerSearchTerm);
-                
                 filteredEvents = allEvents.Where(e =>
                 {
                     // Search in display name
                     if (e.sampleParsedEvent.displayName.ToLower().Contains(lowerSearchTerm))
                         return true;
-                    
-                    // Check aliases
-                    foreach (var alias in searchAliases)
-                    {
-                        if (e.sampleParsedEvent.displayName.ToLower().Contains(alias))
-                            return true;
-                    }
                         
                     // Search in original/Japanese names
                     foreach (var rule in e.matchRules)
@@ -2468,31 +2471,6 @@ if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimation
             {
                 updateAction();
             }
-        }
-        
-        private List<string> GetSearchAliases(string searchTerm)
-        {
-            var aliases = new List<string>();
-            
-            if (searchTerm.Contains("sound") || searchTerm.Contains("audio"))
-            {
-                aliases.Add("sfx");
-                aliases.Add("sound");
-                aliases.Add("audio");
-            }
-            if (searchTerm.Contains("fx") || searchTerm.Contains("effect"))
-            {
-                aliases.Add("particle");
-                aliases.Add("effect");
-                aliases.Add("fx");
-                aliases.Add("vfx");
-            }
-            if (searchTerm.Contains("cam"))
-            {
-                aliases.Add("camera");
-            }
-            
-            return aliases;
         }
         
         private bool IsFuzzyMatch(string text, string pattern)
