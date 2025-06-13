@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using DivineDragon.EngageAnimationEvents;
 using Object = UnityEngine.Object;
 
 namespace DivineDragon.Windows
@@ -1797,11 +1798,12 @@ namespace DivineDragon.Windows
                 mousePos = GUIUtility.GUIToScreenPoint(Event.current?.mousePosition ?? new Vector2(100, 100));
             }
             
-            searchWindow.position = new Rect(mousePos.x, mousePos.y, 300, 400);
+            // Make window wider to accommodate two-column layout
+            searchWindow.position = new Rect(mousePos.x, mousePos.y, 600, 400);
             searchWindow.targetClip = clip;
             searchWindow.targetTime = time;
             searchWindow.eventToModify = eventToModify;
-            searchWindow.ShowAsDropDown(searchWindow.position, new Vector2(300, 400));
+            searchWindow.ShowAsDropDown(searchWindow.position, new Vector2(600, 400));
         }
         
         public void ImportEventsFromClip(AnimationClip sourceClip)
@@ -1887,10 +1889,57 @@ namespace DivineDragon.Windows
         private Vector2 scrollPosition;
         private List<EngageAnimationEventParser<ParsedEngageAnimationEvent>> filteredEvents;
         private TextField searchField;
+        private int selectedIndex = 0; // Start with first item selected
+        private ScrollView scrollView;
         
         private void OnEnable()
         {
             titleContent = new GUIContent("Add Event");
+            minSize = new Vector2(600, 400);
+        }
+        
+        private void OnGUI()
+        {
+            // Handle keyboard input at the window level
+            Event e = Event.current;
+            if (e.type == EventType.KeyDown)
+            {
+                bool handled = false;
+                
+                if (e.keyCode == KeyCode.DownArrow)
+                {
+                    NavigateSelection(1);
+                    handled = true;
+                }
+                else if (e.keyCode == KeyCode.UpArrow)
+                {
+                    NavigateSelection(-1);
+                    handled = true;
+                }
+                else if ((e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && selectedIndex >= 0)
+                {
+                    if (filteredEvents != null && selectedIndex < filteredEvents.Count)
+                    {
+                        AddEvent(filteredEvents[selectedIndex]);
+                        handled = true;
+                    }
+                }
+                else if (e.keyCode == KeyCode.Escape)
+                {
+                    if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimationEvent.functionName))
+                    {
+                        AnimationClipWatcher.DeleteEventProgrammatically(targetClip, eventToModify, "Cancel Event Creation");
+                    }
+                    Close();
+                    handled = true;
+                }
+                
+                if (handled)
+                {
+                    e.Use(); // This prevents the OS from making the error sound
+                    Repaint(); // Force UI update
+                }
+            }
         }
         
         private void CreateGUI()
@@ -1899,58 +1948,125 @@ namespace DivineDragon.Windows
             root.style.paddingTop = 5;
             root.style.paddingLeft = 5;
             root.style.paddingRight = 5;
-            root.style.paddingBottom = 5;
+            root.style.paddingBottom = 10; // More bottom padding
+            root.style.flexDirection = FlexDirection.Column;
+            root.style.flexGrow = 1;
             
-            // Handle Escape key
-            root.RegisterCallback<KeyDownEvent>(evt =>
+            // Load custom stylesheet
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.divinedragon.animation_tools/Editor/AnimationTools.uss");
+            if (styleSheet != null)
             {
-                if (evt.keyCode == KeyCode.Escape)
-                {
-                    // If we were modifying an event and user cancels, delete the empty event
-                    if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimationEvent.functionName))
-                    {
-                        AnimationClipWatcher.DeleteEventProgrammatically(targetClip, eventToModify, "Cancel Event Creation");
-                    }
-                    Close();
-                    evt.StopPropagation();
-                }
-            });
+                root.styleSheets.Add(styleSheet);
+            }
+            
+            // Keyboard events are now handled in OnGUI() for better reliability
             
             // Create search field
             searchField = new TextField("Search");
-            searchField.style.marginBottom = 10;
+            searchField.style.marginBottom = 5;
             searchField.RegisterValueChangedCallback(evt => 
             {
                 searchTerm = evt.newValue;
+                selectedIndex = 0; // Reset selection when search changes
                 FilterEvents();
             });
             
-            // Handle Enter key in search field
+            // Handle arrow keys when text field has focus
             searchField.RegisterCallback<KeyDownEvent>(evt =>
             {
-                if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                if (evt.keyCode == KeyCode.DownArrow)
                 {
-                    // If there's exactly one filtered event, select it
-                    if (filteredEvents != null && filteredEvents.Count == 1)
+                    NavigateSelection(1);
+                    evt.StopPropagation();
+                    evt.PreventDefault();
+                }
+                else if (evt.keyCode == KeyCode.UpArrow)
+                {
+                    NavigateSelection(-1);
+                    evt.StopPropagation();
+                    evt.PreventDefault();
+                }
+                else if ((evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter) && selectedIndex >= 0)
+                {
+                    if (filteredEvents != null && selectedIndex < filteredEvents.Count)
                     {
-                        AddEvent(filteredEvents[0]);
+                        AddEvent(filteredEvents[selectedIndex]);
                         evt.StopPropagation();
+                        evt.PreventDefault();
                     }
                 }
-            });
+            }, TrickleDown.TrickleDown);
             
             root.Add(searchField);
             
-            // Create scroll view for results
-            var scrollView = new ScrollView();
-            scrollView.style.flexGrow = 1;
+            // Add keyboard navigation hints
+            var hintsLabel = new Label("↑↓ Navigate • Enter Select • Esc Cancel")
+            {
+                style =
+                {
+                    fontSize = 10,
+                    color = new Color(0.6f, 0.6f, 0.6f),
+                    marginBottom = 5,
+                    unityTextAlign = TextAnchor.MiddleCenter
+                }
+            };
+            root.Add(hintsLabel);
             
-            // Container for filtered results
-            var resultsContainer = new VisualElement();
-            scrollView.Add(resultsContainer);
-            root.Add(scrollView);
+            // Create two-column container
+            var columnsContainer = new VisualElement();
+            columnsContainer.style.flexDirection = FlexDirection.Row;
+            columnsContainer.style.flexGrow = 1;
             
-            // Add cancel button at the bottom
+            // Create scroll view for results (left column)
+            scrollView = new ScrollView();
+            scrollView.style.width = Length.Percent(50); // Fixed 50% width
+            scrollView.style.borderRightWidth = 1;
+            scrollView.style.borderRightColor = new Color(0.3f, 0.3f, 0.3f);
+            scrollView.focusable = false; // Prevent scrollview from taking focus
+            
+            // Keyboard events are handled in OnGUI() instead
+            
+            // Create description panel (right column)
+            var descriptionPanel = new VisualElement();
+            descriptionPanel.name = "description-panel";
+            descriptionPanel.style.width = Length.Percent(50); // Fixed 50% width
+            descriptionPanel.style.paddingLeft = 10;
+            descriptionPanel.style.paddingRight = 10;
+            descriptionPanel.style.paddingTop = 10;
+            descriptionPanel.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.2f);
+            
+            // Event name label
+            var eventNameLabel = new Label();
+            eventNameLabel.name = "event-name";
+            eventNameLabel.style.fontSize = 14;
+            eventNameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            eventNameLabel.style.marginBottom = 8;
+            eventNameLabel.style.color = new Color(0.4f, 0.6f, 0.8f);
+            descriptionPanel.Add(eventNameLabel);
+            
+            // Description text
+            var descriptionLabel = new Label();
+            descriptionLabel.name = "description-text";
+            descriptionLabel.style.fontSize = 11;
+            descriptionLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
+            descriptionLabel.style.whiteSpace = WhiteSpace.Normal;
+            descriptionPanel.Add(descriptionLabel);
+            
+            // Add columns to container
+            columnsContainer.Add(scrollView);
+            columnsContainer.Add(descriptionPanel);
+            
+            root.Add(columnsContainer);
+            
+            // Add bottom controls container
+            var bottomControls = new VisualElement();
+            bottomControls.style.flexDirection = FlexDirection.Row;
+            bottomControls.style.marginTop = 10;
+            bottomControls.style.justifyContent = Justify.FlexEnd;
+            bottomControls.style.flexShrink = 0; // Prevent controls from shrinking
+            bottomControls.style.height = 30; // Fixed height for controls
+            
+            // Add cancel button
             var cancelButton = new Button(() =>
             {
                 // If we were modifying an event and user cancels, delete the empty event
@@ -1964,101 +2080,396 @@ namespace DivineDragon.Windows
                 text = "Cancel",
                 style =
                 {
-                    marginTop = 10,
-                    height = 25
+                    height = 25,
+                    width = 80,
+                    marginRight = 5
                 }
             };
-            root.Add(cancelButton);
+            bottomControls.Add(cancelButton);
+            
+            // Add create button
+            var createButton = new Button(() =>
+            {
+                if (selectedIndex >= 0 && selectedIndex < filteredEvents.Count)
+                {
+                    AddEvent(filteredEvents[selectedIndex]);
+                }
+            })
+            {
+                text = "Create",
+                style =
+                {
+                    height = 25,
+                    width = 80
+                }
+            };
+            createButton.name = "create-button";
+            bottomControls.Add(createButton);
+            
+            root.Add(bottomControls);
             
             // Focus search field
             searchField.Focus();
             searchField.SelectAll();
             
-            // Initial filter
-            FilterEvents();
-            
             // Update UI with filtered results
             void UpdateResults()
             {
-                resultsContainer.Clear();
+                scrollView.Clear();
+
+                Debug.Log($"UpdateResults called. FilteredEvents count: {filteredEvents?.Count ?? 0}");
                 
                 if (filteredEvents == null || filteredEvents.Count == 0)
                 {
                     var noResultsLabel = new Label("No events found");
                     noResultsLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
                     noResultsLabel.style.marginTop = 20;
-                    resultsContainer.Add(noResultsLabel);
+                    scrollView.Add(noResultsLabel);
+                    
+                    // Disable create button when no results
+                    var createButton = root.Q<Button>("create-button");
+                    createButton?.SetEnabled(false);
+                    
+                    // Clear description panel
+                    var eventNameLabel = root.Q<Label>("event-name");
+                    var descriptionText = root.Q<Label>("description-text");
+                    if (eventNameLabel != null) eventNameLabel.text = "No events found";
+                    if (descriptionText != null) descriptionText.text = "";
+                    
                     return;
                 }
                 
-                // Group by category
-                var categorized = new Dictionary<ParsedEngageAnimationEvent.EventCategory, List<EngageAnimationEventParser<ParsedEngageAnimationEvent>>>();
-                foreach (var evt in filteredEvents)
+                // Create simple list without ListView
+                for (int i = 0; i < filteredEvents.Count; i++)
                 {
-                    var category = evt.sampleParsedEvent.category;
-                    if (!categorized.ContainsKey(category))
-                        categorized[category] = new List<EngageAnimationEventParser<ParsedEngageAnimationEvent>>();
-                    categorized[category].Add(evt);
+                    var index = i; // Capture for closure
+                    var parser = filteredEvents[i];
+                    var evt = parser.sampleParsedEvent;
+                    
+                    // Create item container
+                    var itemContainer = new VisualElement();
+                    itemContainer.style.flexDirection = FlexDirection.Row;
+                    itemContainer.style.paddingLeft = 10;
+                    itemContainer.style.paddingRight = 10;
+                    itemContainer.style.paddingTop = 5;
+                    itemContainer.style.paddingBottom = 5;
+                    itemContainer.style.marginBottom = 2;
+                    itemContainer.focusable = false; // Prevent items from taking focus
+                    
+                    // Add hover effect
+                    itemContainer.RegisterCallback<MouseEnterEvent>(e => 
+                    {
+                        if (index != selectedIndex)
+                            itemContainer.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f, 0.2f);
+                    });
+                    itemContainer.RegisterCallback<MouseLeaveEvent>(e => 
+                    {
+                        if (index != selectedIndex)
+                            itemContainer.style.backgroundColor = Color.clear;
+                    });
+                    
+                    // Handle click - just select the item
+                    itemContainer.RegisterCallback<MouseDownEvent>(e =>
+                    {
+                        if (e.button == 0)
+                        {
+                            selectedIndex = index;
+                            UpdateSelection();
+                            e.StopPropagation();
+                            
+                            // Keep focus on the search field to ensure keyboard navigation works
+                            searchField.Focus();
+                        }
+                    });
+                    
+                    
+                    // Event name with search highlighting
+                    var nameContainer = new VisualElement();
+                    nameContainer.style.flexDirection = FlexDirection.Row;
+                    nameContainer.style.flexGrow = 1;
+                    nameContainer.style.alignItems = Align.Center;
+                    nameContainer.tooltip = evt.Explanation;
+                    nameContainer.focusable = false;
+                    
+                    // Create highlighted text
+                    CreateHighlightedText(nameContainer, evt.displayName, searchTerm);
+                    
+                    itemContainer.Add(nameContainer);
+                    
+                    // Category
+                    var categoryLabel = new Label(evt.category.GetDescription());
+                    categoryLabel.style.fontSize = 10;
+                    categoryLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
+                    categoryLabel.focusable = false;
+                    itemContainer.Add(categoryLabel);
+                    
+                    // Store reference for selection and event data
+                    itemContainer.userData = index;
+                    
+                    scrollView.Add(itemContainer);
                 }
                 
-                // Display categorized results
-                foreach (var kvp in categorized.OrderBy(x => x.Key))
+                // Enable create button since we have results
+                var createBtn = root.Q<Button>("create-button");
+                createBtn?.SetEnabled(true);
+                
+                // Update selection
+                UpdateSelection();
+            }
+            
+            // Helper to create highlighted text elements
+            void CreateHighlightedText(VisualElement container, string text, string searchTerm)
+            {
+                if (string.IsNullOrEmpty(searchTerm) || string.IsNullOrEmpty(text))
                 {
-                    if (kvp.Value.Count == 0) continue;
-                    
-                    // Category header
-                    var categoryLabel = new Label(kvp.Key.GetDescription());
-                    categoryLabel.style.fontSize = 12;
-                    categoryLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                    categoryLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
-                    categoryLabel.style.marginTop = 10;
-                    categoryLabel.style.marginBottom = 5;
-                    resultsContainer.Add(categoryLabel);
-                    
-                    // Event buttons
-                    foreach (var parser in kvp.Value)
+                    var label = new Label(text);
+                    label.style.marginLeft = 0;
+                    label.style.marginRight = 0;
+                    label.style.marginTop = 0;
+                    label.style.marginBottom = 0;
+                    label.style.paddingLeft = 0;
+                    label.style.paddingRight = 0;
+                    label.style.paddingTop = 0;
+                    label.style.paddingBottom = 0;
+                    label.focusable = false;
+                    container.Add(label);
+                    return;
+                }
+                
+                var textLower = text.ToLower();
+                var searchLower = searchTerm.ToLower();
+                var lastIndex = 0;
+                
+                // Find all occurrences
+                while (true)
+                {
+                    var matchIndex = textLower.IndexOf(searchLower, lastIndex);
+                    if (matchIndex < 0)
                     {
-                        var button = new Button(() =>
+                        // Add remaining text
+                        if (lastIndex < text.Length)
                         {
-                            AddEvent(parser);
-                        })
+                            var remainingLabel = new Label(text.Substring(lastIndex));
+                            remainingLabel.style.marginLeft = 0;
+                            remainingLabel.style.marginRight = 0;
+                            remainingLabel.style.marginTop = 0;
+                            remainingLabel.style.marginBottom = 0;
+                            remainingLabel.style.paddingLeft = 0;
+                            remainingLabel.style.paddingRight = 0;
+                            remainingLabel.style.paddingTop = 0;
+                            remainingLabel.style.paddingBottom = 0;
+                            remainingLabel.focusable = false;
+                            container.Add(remainingLabel);
+                        }
+                        break;
+                    }
+                    
+                    // Add text before match
+                    if (matchIndex > lastIndex)
+                    {
+                        var beforeLabel = new Label(text.Substring(lastIndex, matchIndex - lastIndex));
+                        beforeLabel.style.marginLeft = 0;
+                        beforeLabel.style.marginRight = 0;
+                        beforeLabel.style.marginTop = 0;
+                        beforeLabel.style.marginBottom = 0;
+                        beforeLabel.style.paddingLeft = 0;
+                        beforeLabel.style.paddingRight = 0;
+                        beforeLabel.style.paddingTop = 0;
+                        beforeLabel.style.paddingBottom = 0;
+                        beforeLabel.focusable = false;
+                        container.Add(beforeLabel);
+                    }
+                    
+                    // Add highlighted match
+                    var matchLabel = new Label(text.Substring(matchIndex, searchTerm.Length));
+                    matchLabel.style.backgroundColor = new Color(1f, 0.8f, 0.2f, 0.3f);
+                    matchLabel.style.color = Color.white;
+                    // Remove margins and padding to avoid gaps
+                    matchLabel.style.marginLeft = 0;
+                    matchLabel.style.marginRight = 0;
+                    matchLabel.style.marginTop = 0;
+                    matchLabel.style.marginBottom = 0;
+                    matchLabel.style.paddingLeft = 0;
+                    matchLabel.style.paddingRight = 0;
+                    matchLabel.style.paddingTop = 0;
+                    matchLabel.style.paddingBottom = 0;
+                    matchLabel.focusable = false;
+                    container.Add(matchLabel);
+                    
+                    lastIndex = matchIndex + searchTerm.Length;
+                }
+            }
+            
+            // Helper to update selection visuals
+            void UpdateSelection()
+            {
+                var children = scrollView.Children().ToList();
+                VisualElement selectedElement = null;
+                
+                for (int i = 0; i < children.Count; i++)
+                {
+                    var child = children[i];
+                    if (child.userData is int index)
+                    {
+                        if (index == selectedIndex)
                         {
-                            text = parser.sampleParsedEvent.displayName,
-                            tooltip = parser.sampleParsedEvent.Explanation
-                        };
-                        button.style.marginLeft = 10;
-                        button.style.marginTop = 2;
-                        button.style.marginBottom = 2;
-                        resultsContainer.Add(button);
+                            child.style.backgroundColor = new Color(0.3f, 0.5f, 0.7f, 0.3f);
+                            child.style.borderLeftWidth = 3;
+                            child.style.borderLeftColor = new Color(0.4f, 0.6f, 0.8f);
+                            child.style.paddingLeft = 7;
+                            
+                            selectedElement = child;
+                            
+                            // Ensure selected item is visible
+                            scrollView.ScrollTo(child);
+                        }
+                        else
+                        {
+                            child.style.backgroundColor = Color.clear;
+                            child.style.borderLeftWidth = 0;
+                            child.style.paddingLeft = 10;
+                        }
                     }
                 }
                 
-                // Add hint if there's only one result
-                if (filteredEvents.Count == 1)
+                // Update description panel
+                var eventNameLabel = root.Q<Label>("event-name");
+                var descriptionText = root.Q<Label>("description-text");
+                var createButton = root.Q<Button>("create-button");
+                
+                if (selectedIndex >= 0 && selectedIndex < filteredEvents.Count)
                 {
-                    var hintLabel = new Label("(Press Enter to create)")
+                    var evt = filteredEvents[selectedIndex].sampleParsedEvent;
+                    if (eventNameLabel != null) eventNameLabel.text = evt.displayName;
+                    if (descriptionText != null) descriptionText.text = evt.Explanation;
+                    if (createButton != null) 
                     {
-                        style =
-                        {
-                            fontSize = 11,
-                            color = new Color(0.7f, 0.7f, 0.7f),
-                            unityFontStyleAndWeight = FontStyle.Italic,
-                            marginTop = 10,
-                            unityTextAlign = TextAnchor.MiddleCenter
-                        }
-                    };
-                    resultsContainer.Add(hintLabel);
+                        createButton.SetEnabled(true);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Create button not found in UpdateSelection");
+                    }
+                }
+                else
+                {
+                    if (eventNameLabel != null) eventNameLabel.text = "No event selected";
+                    if (descriptionText != null) descriptionText.text = "Select an event to see its details.";
+                    if (createButton != null) createButton.SetEnabled(false);
                 }
             }
             
             // Store update function for filtering
             searchField.userData = new System.Action(UpdateResults);
+            
+            // Initial filter - must happen before UpdateResults
+            FilterEvents();
             UpdateResults();
+            
+            // Ensure create button is enabled if we have results
+            if (filteredEvents != null && filteredEvents.Count > 0)
+            {
+                var createBtn = root.Q<Button>("create-button");
+                if (createBtn != null)
+                {
+                    createBtn.SetEnabled(true);
+                }
+            }
         }
+        
+        private void NavigateSelection(int direction)
+        {
+            if (filteredEvents == null || filteredEvents.Count == 0) return;
+            
+            int newIndex = selectedIndex + direction;
+            
+            // Wrap around
+            if (newIndex < 0) newIndex = filteredEvents.Count - 1;
+            if (newIndex >= filteredEvents.Count) newIndex = 0;
+            
+            selectedIndex = newIndex;
+            
+            // Update visual selection by calling the update function
+            if (searchField?.userData is System.Action updateAction)
+            {
+                // Find the UpdateSelection function and call it
+                // This is cleaner than duplicating the logic
+                var updateSelectionAction = rootVisualElement.Q<TextField>()?.userData as System.Action;
+                if (updateSelectionAction != null)
+                {
+                    // Get the UpdateResults action which contains UpdateSelection
+                    var scrollView = rootVisualElement.Q<ScrollView>();
+                    if (scrollView != null)
+                    {
+                        // First update the visual selection
+                        var children = scrollView.Children().ToList();
+                        VisualElement selectedElement = null;
+                        
+                        for (int i = 0; i < children.Count; i++)
+                        {
+                            var child = children[i];
+                            if (child.userData is int index)
+                            {
+                                if (index == selectedIndex)
+                                {
+                                    child.style.backgroundColor = new Color(0.3f, 0.5f, 0.7f, 0.3f);
+                                    child.style.borderLeftWidth = 3;
+                                    child.style.borderLeftColor = new Color(0.4f, 0.6f, 0.8f);
+                                    child.style.paddingLeft = 7;
+                                    selectedElement = child;
+                                    scrollView.ScrollTo(child);
+                                }
+                                else
+                                {
+                                    child.style.backgroundColor = Color.clear;
+                                    child.style.borderLeftWidth = 0;
+                                    child.style.paddingLeft = 10;
+                                }
+                            }
+                        }
+                        
+                        // Update description panel
+                        var eventNameLabel = rootVisualElement.Q<Label>("event-name");
+                        var descriptionText = rootVisualElement.Q<Label>("description-text");
+                        var createButton = rootVisualElement.Q<Button>("create-button");
+                        
+                        if (selectedIndex >= 0 && selectedIndex < filteredEvents.Count)
+                        {
+                            var evt = filteredEvents[selectedIndex].sampleParsedEvent;
+                            if (eventNameLabel != null)
+                            {
+                                eventNameLabel.text = evt.displayName;
+                            }
+                            if (descriptionText != null)
+                            {
+                                descriptionText.text = evt.Explanation;
+                            }
+                            if (createButton != null)
+                            {
+                                createButton.SetEnabled(true);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         
         private void FilterEvents()
         {
+            // Force static constructor to run if it hasn't already
+            var dummy = new AnimationEventParser();
+            
             var allEvents = AnimationEventParser.SupportedEvents;
+            Debug.Log($"FilterEvents called. AllEvents count: {allEvents?.Count ?? 0}");
+            
+            // Safety check - ensure we have events
+            if (allEvents == null || allEvents.Count == 0)
+            {
+                Debug.LogWarning("AnimationEventParser.SupportedEvents is empty or null. This might indicate an initialization issue.");
+                filteredEvents = new List<EngageAnimationEventParser<ParsedEngageAnimationEvent>>();
+                return;
+            }
             
             if (string.IsNullOrEmpty(searchTerm))
             {
@@ -2067,11 +2478,22 @@ namespace DivineDragon.Windows
             else
             {
                 var lowerSearchTerm = searchTerm.ToLower();
+                
+                // Add search aliases
+                var searchAliases = GetSearchAliases(lowerSearchTerm);
+                
                 filteredEvents = allEvents.Where(e =>
                 {
                     // Search in display name
                     if (e.sampleParsedEvent.displayName.ToLower().Contains(lowerSearchTerm))
                         return true;
+                    
+                    // Check aliases
+                    foreach (var alias in searchAliases)
+                    {
+                        if (e.sampleParsedEvent.displayName.ToLower().Contains(alias))
+                            return true;
+                    }
                         
                     // Search in original/Japanese names
                     foreach (var rule in e.matchRules)
@@ -2082,7 +2504,21 @@ namespace DivineDragon.Windows
                             return true;
                     }
                     
+                    // Fuzzy match for common typos
+                    if (IsFuzzyMatch(e.sampleParsedEvent.displayName.ToLower(), lowerSearchTerm))
+                        return true;
+                    
                     return false;
+                }).ToList();
+                
+                // Sort by relevance - exact matches first
+                filteredEvents = filteredEvents.OrderBy(e =>
+                {
+                    var name = e.sampleParsedEvent.displayName.ToLower();
+                    if (name == lowerSearchTerm) return 0;
+                    if (name.StartsWith(lowerSearchTerm)) return 1;
+                    if (name.Contains(lowerSearchTerm)) return 2;
+                    return 3;
                 }).ToList();
             }
             
@@ -2092,6 +2528,47 @@ namespace DivineDragon.Windows
                 updateAction();
             }
         }
+        
+        private List<string> GetSearchAliases(string searchTerm)
+        {
+            var aliases = new List<string>();
+            
+            // Common aliases
+            if (searchTerm.Contains("sound") || searchTerm.Contains("audio"))
+            {
+                aliases.Add("sfx");
+                aliases.Add("sound");
+                aliases.Add("audio");
+            }
+            if (searchTerm.Contains("fx") || searchTerm.Contains("effect"))
+            {
+                aliases.Add("particle");
+                aliases.Add("effect");
+                aliases.Add("fx");
+                aliases.Add("vfx");
+            }
+            if (searchTerm.Contains("cam"))
+            {
+                aliases.Add("camera");
+            }
+            
+            return aliases;
+        }
+        
+        private bool IsFuzzyMatch(string text, string pattern)
+        {
+            // Simple fuzzy matching - all characters in pattern must appear in order
+            int patternIndex = 0;
+            foreach (char c in text)
+            {
+                if (patternIndex < pattern.Length && c == pattern[patternIndex])
+                {
+                    patternIndex++;
+                }
+            }
+            return patternIndex == pattern.Length;
+        }
+        
         
         private void AddEvent(EngageAnimationEventParser<ParsedEngageAnimationEvent> parser)
         {

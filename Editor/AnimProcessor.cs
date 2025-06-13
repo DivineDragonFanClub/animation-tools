@@ -11,13 +11,34 @@ namespace DivineDragon
 {
     public class AnimationEventParser
     {
-        public static List<EngageAnimationEventParser<ParsedEngageAnimationEvent>> SupportedEvents =
-            Assembly.GetAssembly(typeof(EngageAnimationEventParser<ParsedEngageAnimationEvent>))
-                .GetTypes()
-                .Where(t => t.IsSubclassOf(typeof(EngageAnimationEventParser<ParsedEngageAnimationEvent>)) &&
-                            !t.IsAbstract)
-                .Select(t => (EngageAnimationEventParser<ParsedEngageAnimationEvent>)Activator.CreateInstance(t))
-                .ToList();
+        public static List<EngageAnimationEventParser<ParsedEngageAnimationEvent>> SupportedEvents;
+        
+        static AnimationEventParser()
+        {
+            try
+            {
+                SupportedEvents = Assembly.GetAssembly(typeof(EngageAnimationEventParser<ParsedEngageAnimationEvent>))
+                    .GetTypes()
+                    .Where(t => t.IsSubclassOf(typeof(EngageAnimationEventParser<ParsedEngageAnimationEvent>)) &&
+                                !t.IsAbstract)
+                    .Select(t => (EngageAnimationEventParser<ParsedEngageAnimationEvent>)Activator.CreateInstance(t))
+                    .ToList();
+                    
+                if (SupportedEvents.Count == 0)
+                {
+                    Debug.LogWarning("No EngageAnimationEventParser implementations found!");
+                }
+                else
+                {
+                    Debug.Log($"Successfully loaded {SupportedEvents.Count} animation event parsers.");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to initialize AnimationEventParser.SupportedEvents: {e}");
+                SupportedEvents = new List<EngageAnimationEventParser<ParsedEngageAnimationEvent>>();
+            }
+        }
 
         public static Dictionary<string, EngageAnimationEventParser<ParsedEngageAnimationEvent>> displayNameToParser =>
             SupportedEvents
