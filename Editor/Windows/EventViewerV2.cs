@@ -394,7 +394,6 @@ namespace DivineDragon.Windows
 
         public void OnDestroy()
         {
-            Debug.Log("Destroying EventViewer");
             EditorApplication.update -= handleScrollInTandem;
             EditorApplication.update -= HandleRefreshTick;
             Undo.undoRedoPerformed -= UpdateInspectorCall;
@@ -1544,12 +1543,11 @@ namespace DivineDragon.Windows
 
                     // Update the event
                     AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), targetEvent, clone, "Paste Event Data");
-                    Debug.Log("Pasted event data successfully");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to paste event data: {ex.Message}");
+                // Failed to paste event data
             }
         }
 
@@ -1567,7 +1565,6 @@ namespace DivineDragon.Windows
             var serializedEvents = events.Select(evt => SerializableAnimationEvent.FromParsedEvent(evt)).ToList();
             var data = JsonUtility.ToJson(new SerializableAnimationEventList { events = serializedEvents }, true);
             EditorGUIUtility.systemCopyBuffer = data;
-            Debug.Log($"Copied {events.Count} events to clipboard");
         }
 
         private void PasteMultipleEventsFromClipboard(AnimationClip clip, ParsedEngageAnimationEvent referenceEvent)
@@ -1598,12 +1595,11 @@ namespace DivineDragon.Windows
                         AnimationClipWatcher.AddEventProgrammatically(clip, clone, "Paste Events");
                     }
 
-                    Debug.Log($"Pasted {eventsToPaste.Count} event{(eventsToPaste.Count > 1 ? "s" : "")}");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to paste events: {ex.Message}");
+                // Failed to paste events
             }
         }
 
@@ -1838,7 +1834,7 @@ namespace DivineDragon.Windows
             var sourceEvents = AnimationUtility.GetAnimationEvents(sourceClip);
             if (sourceEvents.Length == 0)
             {
-                Debug.LogWarning($"No events found in source clip: {sourceClip.name}");
+                // No events found in source clip
                 return;
             }
             
@@ -1847,8 +1843,6 @@ namespace DivineDragon.Windows
             {
                 AnimationClipWatcher.AddEventProgrammatically(targetClip, evt, "Import Events");
             }
-            
-            Debug.Log($"Successfully imported {sourceEvents.Length} events from {sourceClip.name} to {targetClip.name}");
         }
     }
     
@@ -2098,7 +2092,6 @@ namespace DivineDragon.Windows
             {
                 scrollView.Clear();
 
-                Debug.Log($"UpdateResults called. FilteredEvents count: {filteredEvents?.Count ?? 0}");
                 
                 if (filteredEvents == null || filteredEvents.Count == 0)
                 {
@@ -2159,7 +2152,6 @@ namespace DivineDragon.Windows
                     nameContainer.style.flexDirection = FlexDirection.Row;
                     nameContainer.style.flexGrow = 1;
                     nameContainer.style.alignItems = Align.Center;
-                    nameContainer.tooltip = evt.Explanation;
                     nameContainer.focusable = false;
                     
                     CreateHighlightedText(nameContainer, evt.displayName, searchTerm);
@@ -2306,10 +2298,6 @@ namespace DivineDragon.Windows
                     {
                         createButton.SetEnabled(true);
                     }
-                    else
-                    {
-                        Debug.LogWarning("Create button not found in UpdateSelection");
-                    }
                 }
                 else
                 {
@@ -2421,12 +2409,11 @@ namespace DivineDragon.Windows
             var dummy = new AnimationEventParser();
             
             var allEvents = AnimationEventParser.SupportedEvents;
-            Debug.Log($"FilterEvents called. AllEvents count: {allEvents?.Count ?? 0}");
             
             // Safety check - ensure we have events
             if (allEvents == null || allEvents.Count == 0)
             {
-                Debug.LogWarning("AnimationEventParser.SupportedEvents is empty or null. This might indicate an initialization issue.");
+                // AnimationEventParser.SupportedEvents is empty or null
                 filteredEvents = new List<EngageAnimationEventParser<ParsedEngageAnimationEvent>>();
                 return;
             }
