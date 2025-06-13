@@ -22,6 +22,8 @@ namespace DivineDragon.EngageAnimationEvents
         };
         public override string Summary => $"Fall Direction (x: {deathFallDirection.x:F3}, z: {deathFallDirection.z:F3})";
         
+        public override string Explanation => "Specifies the character's death fall direction. This has not yet been verified.";
+        
         protected FXZ deathFallDirection => Quantizer.ItoFXZ(backingAnimationEvent.intParameter);
         
         public override void AlwaysRender(AnimationEditor go, List<ParsedEngageAnimationEvent> events)

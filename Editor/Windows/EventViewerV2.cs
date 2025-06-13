@@ -1889,7 +1889,7 @@ namespace DivineDragon.Windows
         private Vector2 scrollPosition;
         private List<EngageAnimationEventParser<ParsedEngageAnimationEvent>> filteredEvents;
         private TextField searchField;
-        private int selectedIndex = 0; // Start with first item selected
+        private int selectedIndex = 0;
         private ScrollView scrollView;
         
         private void OnEnable()
@@ -1900,7 +1900,6 @@ namespace DivineDragon.Windows
         
         private void OnGUI()
         {
-            // Handle keyboard input at the window level
             Event e = Event.current;
             if (e.type == EventType.KeyDown)
             {
@@ -1936,8 +1935,8 @@ namespace DivineDragon.Windows
                 
                 if (handled)
                 {
-                    e.Use(); // This prevents the OS from making the error sound
-                    Repaint(); // Force UI update
+                    e.Use();
+                    Repaint();
                 }
             }
         }
@@ -1948,30 +1947,24 @@ namespace DivineDragon.Windows
             root.style.paddingTop = 5;
             root.style.paddingLeft = 5;
             root.style.paddingRight = 5;
-            root.style.paddingBottom = 10; // More bottom padding
+            root.style.paddingBottom = 5;
             root.style.flexDirection = FlexDirection.Column;
             root.style.flexGrow = 1;
             
-            // Load custom stylesheet
             var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.divinedragon.animation_tools/Editor/AnimationTools.uss");
             if (styleSheet != null)
             {
                 root.styleSheets.Add(styleSheet);
             }
             
-            // Keyboard events are now handled in OnGUI() for better reliability
-            
-            // Create search field
             searchField = new TextField("Search");
             searchField.style.marginBottom = 5;
             searchField.RegisterValueChangedCallback(evt => 
             {
                 searchTerm = evt.newValue;
-                selectedIndex = 0; // Reset selection when search changes
+                selectedIndex = 0;
                 FilterEvents();
             });
-            
-            // Handle arrow keys when text field has focus
             searchField.RegisterCallback<KeyDownEvent>(evt =>
             {
                 if (evt.keyCode == KeyCode.DownArrow)
@@ -1998,8 +1991,6 @@ namespace DivineDragon.Windows
             }, TrickleDown.TrickleDown);
             
             root.Add(searchField);
-            
-            // Add keyboard navigation hints
             var hintsLabel = new Label("↑↓ Navigate • Enter Select • Esc Cancel")
             {
                 style =
@@ -2011,31 +2002,22 @@ namespace DivineDragon.Windows
                 }
             };
             root.Add(hintsLabel);
-            
-            // Create two-column container
             var columnsContainer = new VisualElement();
             columnsContainer.style.flexDirection = FlexDirection.Row;
             columnsContainer.style.flexGrow = 1;
-            
-            // Create scroll view for results (left column)
             scrollView = new ScrollView();
-            scrollView.style.width = Length.Percent(50); // Fixed 50% width
+            scrollView.style.width = Length.Percent(50);
             scrollView.style.borderRightWidth = 1;
             scrollView.style.borderRightColor = new Color(0.3f, 0.3f, 0.3f);
-            scrollView.focusable = false; // Prevent scrollview from taking focus
+            scrollView.focusable = false;
             
-            // Keyboard events are handled in OnGUI() instead
-            
-            // Create description panel (right column)
             var descriptionPanel = new VisualElement();
             descriptionPanel.name = "description-panel";
-            descriptionPanel.style.width = Length.Percent(50); // Fixed 50% width
+            descriptionPanel.style.width = Length.Percent(50);
             descriptionPanel.style.paddingLeft = 10;
             descriptionPanel.style.paddingRight = 10;
             descriptionPanel.style.paddingTop = 10;
             descriptionPanel.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.2f);
-            
-            // Event name label
             var eventNameLabel = new Label();
             eventNameLabel.name = "event-name";
             eventNameLabel.style.fontSize = 14;
@@ -2043,34 +2025,25 @@ namespace DivineDragon.Windows
             eventNameLabel.style.marginBottom = 8;
             eventNameLabel.style.color = new Color(0.4f, 0.6f, 0.8f);
             descriptionPanel.Add(eventNameLabel);
-            
-            // Description text
             var descriptionLabel = new Label();
             descriptionLabel.name = "description-text";
             descriptionLabel.style.fontSize = 11;
             descriptionLabel.style.color = new Color(0.8f, 0.8f, 0.8f);
             descriptionLabel.style.whiteSpace = WhiteSpace.Normal;
             descriptionPanel.Add(descriptionLabel);
-            
-            // Add columns to container
             columnsContainer.Add(scrollView);
             columnsContainer.Add(descriptionPanel);
             
             root.Add(columnsContainer);
-            
-            // Add bottom controls container
             var bottomControls = new VisualElement();
             bottomControls.style.flexDirection = FlexDirection.Row;
-            bottomControls.style.marginTop = 10;
+            bottomControls.style.marginTop = 5;
             bottomControls.style.justifyContent = Justify.FlexEnd;
-            bottomControls.style.flexShrink = 0; // Prevent controls from shrinking
-            bottomControls.style.height = 30; // Fixed height for controls
-            
-            // Add cancel button
+            bottomControls.style.flexShrink = 0;
+            bottomControls.style.height = 25;
             var cancelButton = new Button(() =>
             {
-                // If we were modifying an event and user cancels, delete the empty event
-                if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimationEvent.functionName))
+if (eventToModify != null && string.IsNullOrEmpty(eventToModify.backingAnimationEvent.functionName))
                 {
                     AnimationClipWatcher.DeleteEventProgrammatically(targetClip, eventToModify, "Cancel Event Creation");
                 }
@@ -2086,8 +2059,6 @@ namespace DivineDragon.Windows
                 }
             };
             bottomControls.Add(cancelButton);
-            
-            // Add create button
             var createButton = new Button(() =>
             {
                 if (selectedIndex >= 0 && selectedIndex < filteredEvents.Count)
@@ -2107,12 +2078,9 @@ namespace DivineDragon.Windows
             bottomControls.Add(createButton);
             
             root.Add(bottomControls);
-            
-            // Focus search field
             searchField.Focus();
             searchField.SelectAll();
             
-            // Update UI with filtered results
             void UpdateResults()
             {
                 scrollView.Clear();
@@ -2126,11 +2094,9 @@ namespace DivineDragon.Windows
                     noResultsLabel.style.marginTop = 20;
                     scrollView.Add(noResultsLabel);
                     
-                    // Disable create button when no results
                     var createButton = root.Q<Button>("create-button");
                     createButton?.SetEnabled(false);
                     
-                    // Clear description panel
                     var eventNameLabel = root.Q<Label>("event-name");
                     var descriptionText = root.Q<Label>("description-text");
                     if (eventNameLabel != null) eventNameLabel.text = "No events found";
@@ -2139,14 +2105,12 @@ namespace DivineDragon.Windows
                     return;
                 }
                 
-                // Create simple list without ListView
                 for (int i = 0; i < filteredEvents.Count; i++)
                 {
-                    var index = i; // Capture for closure
+                    var index = i;
                     var parser = filteredEvents[i];
                     var evt = parser.sampleParsedEvent;
                     
-                    // Create item container
                     var itemContainer = new VisualElement();
                     itemContainer.style.flexDirection = FlexDirection.Row;
                     itemContainer.style.paddingLeft = 10;
@@ -2154,9 +2118,8 @@ namespace DivineDragon.Windows
                     itemContainer.style.paddingTop = 5;
                     itemContainer.style.paddingBottom = 5;
                     itemContainer.style.marginBottom = 2;
-                    itemContainer.focusable = false; // Prevent items from taking focus
+                    itemContainer.focusable = false;
                     
-                    // Add hover effect
                     itemContainer.RegisterCallback<MouseEnterEvent>(e => 
                     {
                         if (index != selectedIndex)
@@ -2168,7 +2131,6 @@ namespace DivineDragon.Windows
                             itemContainer.style.backgroundColor = Color.clear;
                     });
                     
-                    // Handle click - just select the item
                     itemContainer.RegisterCallback<MouseDownEvent>(e =>
                     {
                         if (e.button == 0)
@@ -2177,13 +2139,9 @@ namespace DivineDragon.Windows
                             UpdateSelection();
                             e.StopPropagation();
                             
-                            // Keep focus on the search field to ensure keyboard navigation works
                             searchField.Focus();
                         }
                     });
-                    
-                    
-                    // Event name with search highlighting
                     var nameContainer = new VisualElement();
                     nameContainer.style.flexDirection = FlexDirection.Row;
                     nameContainer.style.flexGrow = 1;
@@ -2191,33 +2149,27 @@ namespace DivineDragon.Windows
                     nameContainer.tooltip = evt.Explanation;
                     nameContainer.focusable = false;
                     
-                    // Create highlighted text
                     CreateHighlightedText(nameContainer, evt.displayName, searchTerm);
                     
                     itemContainer.Add(nameContainer);
                     
-                    // Category
                     var categoryLabel = new Label(evt.category.GetDescription());
                     categoryLabel.style.fontSize = 10;
                     categoryLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
                     categoryLabel.focusable = false;
                     itemContainer.Add(categoryLabel);
                     
-                    // Store reference for selection and event data
                     itemContainer.userData = index;
                     
                     scrollView.Add(itemContainer);
                 }
                 
-                // Enable create button since we have results
                 var createBtn = root.Q<Button>("create-button");
                 createBtn?.SetEnabled(true);
                 
-                // Update selection
                 UpdateSelection();
             }
             
-            // Helper to create highlighted text elements
             void CreateHighlightedText(VisualElement container, string text, string searchTerm)
             {
                 if (string.IsNullOrEmpty(searchTerm) || string.IsNullOrEmpty(text))
@@ -2240,13 +2192,11 @@ namespace DivineDragon.Windows
                 var searchLower = searchTerm.ToLower();
                 var lastIndex = 0;
                 
-                // Find all occurrences
                 while (true)
                 {
                     var matchIndex = textLower.IndexOf(searchLower, lastIndex);
                     if (matchIndex < 0)
                     {
-                        // Add remaining text
                         if (lastIndex < text.Length)
                         {
                             var remainingLabel = new Label(text.Substring(lastIndex));
@@ -2264,7 +2214,6 @@ namespace DivineDragon.Windows
                         break;
                     }
                     
-                    // Add text before match
                     if (matchIndex > lastIndex)
                     {
                         var beforeLabel = new Label(text.Substring(lastIndex, matchIndex - lastIndex));
@@ -2280,11 +2229,9 @@ namespace DivineDragon.Windows
                         container.Add(beforeLabel);
                     }
                     
-                    // Add highlighted match
                     var matchLabel = new Label(text.Substring(matchIndex, searchTerm.Length));
                     matchLabel.style.backgroundColor = new Color(1f, 0.8f, 0.2f, 0.3f);
                     matchLabel.style.color = Color.white;
-                    // Remove margins and padding to avoid gaps
                     matchLabel.style.marginLeft = 0;
                     matchLabel.style.marginRight = 0;
                     matchLabel.style.marginTop = 0;
@@ -2473,7 +2420,7 @@ namespace DivineDragon.Windows
             
             if (string.IsNullOrEmpty(searchTerm))
             {
-                filteredEvents = allEvents;
+                filteredEvents = allEvents.OrderBy(e => e.sampleParsedEvent.displayName).ToList();
             }
             else
             {
@@ -2503,15 +2450,11 @@ namespace DivineDragon.Windows
                         if (rule is FunctionNameStringParameterMatchRule fnsRule && fnsRule.stringParameter.ToLower().Contains(lowerSearchTerm))
                             return true;
                     }
-                    
-                    // Fuzzy match for common typos
                     if (IsFuzzyMatch(e.sampleParsedEvent.displayName.ToLower(), lowerSearchTerm))
                         return true;
                     
                     return false;
                 }).ToList();
-                
-                // Sort by relevance - exact matches first
                 filteredEvents = filteredEvents.OrderBy(e =>
                 {
                     var name = e.sampleParsedEvent.displayName.ToLower();
@@ -2521,8 +2464,6 @@ namespace DivineDragon.Windows
                     return 3;
                 }).ToList();
             }
-            
-            // Update UI if it exists
             if (searchField?.userData is System.Action updateAction)
             {
                 updateAction();
@@ -2533,7 +2474,6 @@ namespace DivineDragon.Windows
         {
             var aliases = new List<string>();
             
-            // Common aliases
             if (searchTerm.Contains("sound") || searchTerm.Contains("audio"))
             {
                 aliases.Add("sfx");
@@ -2557,7 +2497,6 @@ namespace DivineDragon.Windows
         
         private bool IsFuzzyMatch(string text, string pattern)
         {
-            // Simple fuzzy matching - all characters in pattern must appear in order
             int patternIndex = 0;
             foreach (char c in text)
             {
@@ -2576,17 +2515,13 @@ namespace DivineDragon.Windows
             
             if (eventToModify != null)
             {
-                // Modify the existing event
                 var modifiedEvent = parser.Create();
-                modifiedEvent.time = eventToModify.backingAnimationEvent.time; // Keep original time
-                
-                // Replace the event with the configured version
+                modifiedEvent.time = eventToModify.backingAnimationEvent.time;
                 AnimationClipWatcher.ReplaceEventProgrammatically(targetClip, eventToModify, modifiedEvent, 
                     $"Configure Event as {parser.sampleParsedEvent.displayName}");
             }
             else
             {
-                // Create a new event
                 var newEvent = parser.Create();
                 newEvent.time = targetTime;
                 AnimationClipWatcher.AddEventProgrammatically(targetClip, newEvent, 
