@@ -1286,11 +1286,27 @@ namespace DivineDragon.Windows
             headerContainer.style.paddingBottom = 7;
             headerContainer.style.flexDirection = FlexDirection.Row;
 
-            // Labels
+            // Create a container that will hold either the label or highlighted content
+            var nameLabelContainer = new VisualElement();
+            nameLabelContainer.name = "name-label-container";
+            nameLabelContainer.style.flexGrow = 0;
+            nameLabelContainer.style.flexShrink = 1;
+            nameLabelContainer.style.height = 14;
+            
+            // Regular label (shown when not searching)
             var nameLabel = new Label();
             nameLabel.name = "name-label";
             nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             nameLabel.style.color = new StyleColor(Color.white);
+            nameLabelContainer.Add(nameLabel);
+            
+            // Highlighted container (shown when searching)
+            var nameHighlightContainer = new VisualElement();
+            nameHighlightContainer.name = "name-highlight";
+            nameHighlightContainer.style.flexDirection = FlexDirection.Row;
+            nameHighlightContainer.style.alignItems = Align.Center;
+            nameHighlightContainer.style.display = DisplayStyle.None;
+            nameLabelContainer.Add(nameHighlightContainer);
 
             var backingNameLabel = new Label();
             backingNameLabel.name = "backing-name-label";
@@ -1310,7 +1326,7 @@ namespace DivineDragon.Windows
             timeLabel.name = "time-label";
 
             // Add labels to header
-            headerContainer.Add(nameLabel);
+            headerContainer.Add(nameLabelContainer);
             headerContainer.Add(backingNameLabel);
             headerContainer.Add(timeLabel);
             var timeIndicator = new Label();
@@ -1321,11 +1337,32 @@ namespace DivineDragon.Windows
 
             itemContainer.Add(headerContainer);
 
+            // Create a container for summary that can hold both regular and highlighted versions
+            var summaryWrapper = new VisualElement();
+            summaryWrapper.name = "summary-wrapper";
+            summaryWrapper.style.minHeight = 16;
+            summaryWrapper.style.paddingTop = 2;
+            
+            // Regular summary label
             var summaryContainer = new Label();
             summaryContainer.name = "summary-container";
             summaryContainer.style.unityFont = EditorStyles.miniFont;
-            summaryContainer.style.paddingTop = 5;
-            itemContainer.Add(summaryContainer);
+            summaryContainer.style.whiteSpace = WhiteSpace.NoWrap;
+            summaryContainer.style.overflow = Overflow.Hidden;
+            summaryContainer.style.textOverflow = TextOverflow.Ellipsis;
+            summaryContainer.style.flexGrow = 1;
+            summaryWrapper.Add(summaryContainer);
+            
+            // Highlighted summary container
+            var summaryHighlightContainer = new VisualElement();
+            summaryHighlightContainer.name = "summary-highlight";
+            summaryHighlightContainer.style.flexDirection = FlexDirection.Row;
+            summaryHighlightContainer.style.whiteSpace = WhiteSpace.NoWrap;
+            summaryHighlightContainer.style.overflow = Overflow.Hidden;
+            summaryHighlightContainer.style.display = DisplayStyle.None;
+            summaryWrapper.Add(summaryHighlightContainer);
+            
+            itemContainer.Add(summaryWrapper);
 
             // Context menu is handled at the list level
 
@@ -1643,7 +1680,38 @@ namespace DivineDragon.Windows
 
             // Bind data to UI elements
             var headerContainer = element.Q("header-container");
-            headerContainer.Q<Label>("name-label").text = item.displayName;
+            var nameLabelContainer = headerContainer.Q("name-label-container");
+            var nameLabel = nameLabelContainer.Q<Label>("name-label");
+            var nameHighlightContainer = nameLabelContainer.Q("name-highlight");
+            
+            // Apply highlighting if search is active
+            if (!string.IsNullOrEmpty(currentSearchTerm))
+            {
+                // Hide regular label, show highlight container
+                nameLabel.style.display = DisplayStyle.None;
+                nameHighlightContainer.style.display = DisplayStyle.Flex;
+                
+                // Clear and recreate highlighted text
+                nameHighlightContainer.Clear();
+                TextHighlightUtility.CreateHighlightedText(nameHighlightContainer, item.displayName, currentSearchTerm);
+                
+                // Apply bold style to all child labels
+                foreach (var child in nameHighlightContainer.Children())
+                {
+                    if (child is Label label)
+                    {
+                        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+                        label.style.color = new StyleColor(Color.white);
+                    }
+                }
+            }
+            else
+            {
+                // Show regular label, hide highlight container
+                nameLabel.style.display = DisplayStyle.Flex;
+                nameHighlightContainer.style.display = DisplayStyle.None;
+                nameLabel.text = item.displayName;
+            }
             var backingNameLabel = headerContainer.Q<Label>("backing-name-label");
             backingNameLabel.text = item.originalName;
             backingNameLabel.style.display = developerMode ? DisplayStyle.Flex : DisplayStyle.None;
@@ -1688,8 +1756,37 @@ namespace DivineDragon.Windows
             element.style.paddingLeft = 7 - width;
 
             // summary
-            var summaryContainer = element.Q<Label>("summary-container");
-            summaryContainer.text = item.Summary;
+            var summaryWrapper = element.Q("summary-wrapper");
+            var summaryContainer = summaryWrapper.Q<Label>("summary-container");
+            var summaryHighlightContainer = summaryWrapper.Q("summary-highlight");
+            
+            // Apply highlighting to summary if search is active and in All mode
+            if (!string.IsNullOrEmpty(currentSearchTerm) && searchMode == SearchMode.All && !string.IsNullOrEmpty(item.Summary))
+            {
+                // Hide regular label, show highlight container
+                summaryContainer.style.display = DisplayStyle.None;
+                summaryHighlightContainer.style.display = DisplayStyle.Flex;
+                
+                // Clear and recreate highlighted text
+                summaryHighlightContainer.Clear();
+                TextHighlightUtility.CreateHighlightedText(summaryHighlightContainer, item.Summary, currentSearchTerm);
+                
+                // Apply mini font style to all child labels
+                foreach (var child in summaryHighlightContainer.Children())
+                {
+                    if (child is Label label)
+                    {
+                        label.style.unityFont = EditorStyles.miniFont;
+                    }
+                }
+            }
+            else
+            {
+                // Show regular label, hide highlight container
+                summaryContainer.style.display = DisplayStyle.Flex;
+                summaryHighlightContainer.style.display = DisplayStyle.None;
+                summaryContainer.text = item.Summary;
+            }
         }
 
         private void DeleteAnimationEvent(AnimationClip currentClip, ParsedEngageAnimationEvent item)
