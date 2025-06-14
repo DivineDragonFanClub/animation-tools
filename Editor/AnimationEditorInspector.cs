@@ -215,36 +215,6 @@ namespace DivineDragon
             if (camLookAtLoc == null || camFollowLoc == null || lookAtLoc == null)
                 return;
 
-            // Get parsed events to check for camera inverse setting
-            var privateEvents = AnimationClipWatcher.GetParsedEvents(getAttachedClip());
-            bool useInverseCamera = false;
-            
-            if (privateEvents != null)
-            {
-                // Find the most recent Camera event before or at current time
-                var editor = GetAnimationWindow();
-                float currentTime = editor.time;
-                
-                DivineDragon.EngageAnimationEvents.Camera mostRecentCameraEvent = null;
-                float mostRecentTime = -1f;
-                
-                foreach (var animEvent in privateEvents)
-                {
-                    if (animEvent is DivineDragon.EngageAnimationEvents.Camera cameraEvent && 
-                        animEvent.backingAnimationEvent.time <= currentTime &&
-                        animEvent.backingAnimationEvent.time > mostRecentTime)
-                    {
-                        mostRecentCameraEvent = cameraEvent;
-                        mostRecentTime = animEvent.backingAnimationEvent.time;
-                    }
-                }
-                
-                // Check if the most recent camera event has inverse enabled
-                if (mostRecentCameraEvent != null)
-                {
-                    useInverseCamera = (mostRecentCameraEvent.backingAnimationEvent.intParameter & 8) != 0;
-                }
-            }
 
             // Draw lookAt_loc indicator
             Handles.color = Color.red;
@@ -297,12 +267,6 @@ namespace DivineDragon
                 Vector3 localEuler = camFollowLoc.localRotation.eulerAngles;
                 
                 float zRotation = -localEuler.y;
-                
-                // Apply inverse if the camera event specifies it
-                if (useInverseCamera)
-                {
-                    zRotation = localEuler.y; // Positive when inverted
-                }
                 
                 Quaternion zRotationQuat = Quaternion.Euler(0, 0, zRotation);
                 
