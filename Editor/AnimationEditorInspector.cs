@@ -215,6 +215,7 @@ namespace DivineDragon
             if (camLookAtLoc == null || camFollowLoc == null || lookAtLoc == null)
                 return;
 
+
             // Draw lookAt_loc indicator
             Handles.color = Color.red;
             Handles.SphereHandleCap(0, lookAtLoc.position, Quaternion.identity, 0.1f, EventType.Repaint);
@@ -249,15 +250,28 @@ namespace DivineDragon
                     Quaternion.LookRotation(direction), size, EventType.Repaint);
             }
             
-            
             // grab the main camera
             Camera mainCamera = Camera.main;
             
             // position the main camera at the camFollow_loc position
             mainCamera.transform.position = camFollowLoc.position;
             
-            // point at the look at loc
-            mainCamera.transform.LookAt(camLookAtLoc.position);
+            Vector3 followPos = camFollowLoc.position;
+            Vector3 lookAtPos = camLookAtLoc.position;
+            Vector3 cameraDirection = lookAtPos - followPos;
+            
+            if (cameraDirection.magnitude > 0.0f)
+            {
+                Quaternion lookRotation = Quaternion.LookRotation(cameraDirection, Vector3.up);
+                
+                Vector3 localEuler = camFollowLoc.localRotation.eulerAngles;
+                
+                float zRotation = -localEuler.y;
+                
+                Quaternion zRotationQuat = Quaternion.Euler(0, 0, zRotation);
+                
+                mainCamera.transform.rotation = lookRotation * zRotationQuat;
+            }
         }
     }
 }

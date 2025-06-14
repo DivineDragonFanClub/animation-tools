@@ -2,6 +2,18 @@ using UnityEngine;
 
 namespace DivineDragon.EngageAnimations
 {
+    public struct FXZ
+    {
+        public float x;
+        public float z;
+        
+        public FXZ(float x, float z)
+        {
+            this.x = x;
+            this.z = z;
+        }
+    }
+    
     public class Quantizer
     {
         public static Vector3 FItoVec3(float magnitude, int packedData)
@@ -111,6 +123,24 @@ namespace DivineDragon.EngageAnimations
                 fVar7 = fVar10;
             }
             return (fVar6, (int)fVar2 << 17 | (int)uVar1 | ((int)fVar7 & 0x7FFF) << 2);
+        }
+        
+        public static FXZ ItoFXZ(int i)
+        {
+            float x = (float)(i >> 16) * 0.0009765625f;
+            float z = (float)(short)i * 0.0009765625f;
+            return new FXZ(x, z);
+        }
+        
+        public static int FXZtoI(FXZ xz)
+        {
+            float zScaled = xz.z * 1024.0f;
+            float xScaled = xz.x * 1024.0f;
+            
+            float zFinal = float.IsInfinity(zScaled) ? -zScaled : zScaled;
+            float xFinal = float.IsInfinity(xScaled) ? -xScaled : xScaled;
+            
+            return ((int)zFinal & 0xFFFF) | ((int)xFinal << 16);
         }
     }
 }
