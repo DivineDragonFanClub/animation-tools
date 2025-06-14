@@ -281,6 +281,7 @@ namespace DivineDragon.Windows
                     var categoryLabel = new Label(evt.category.GetDescription());
                     categoryLabel.style.fontSize = 10;
                     categoryLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
+                    categoryLabel.style.alignSelf = Align.Center;
                     categoryLabel.focusable = false;
                     itemContainer.Add(categoryLabel);
                     
