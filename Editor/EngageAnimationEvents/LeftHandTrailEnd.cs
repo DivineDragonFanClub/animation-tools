@@ -12,7 +12,7 @@ namespace DivineDragon.EngageAnimationEvents
 
         public override string Summary { get; } = "End rendering the left hand weapon trail.";
 
-        public override string Explanation { get; } = "Marks the end of the left hand weapon trail rendering. The trail rendering that started with Left Hand Trail Begin will stop at this point.";
+        public override string Explanation { get; } = "Marks the end of the left hand weapon trail rendering. The trail rendering that started with Left Hand Trail Begin will stop at this point. Not yet verified.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
     }

@@ -13,7 +13,7 @@ namespace DivineDragon.EngageAnimationEvents
 
         public override string Summary { get; } = "Begin rendering the left hand weapon trail.";
 
-        public override string Explanation { get; } = "Marks the start of the left hand weapon trail rendering. A Generic Object PrefetchedCurve_Bridge is expected to be present in the event list with the string parameter 'PC'. The float and int parameters have unknown purposes.";
+        public override string Explanation { get; } = "Marks the start of the left hand weapon trail rendering. A Generic Object PrefetchedCurve_Bridge is expected to be present in the event list with the string parameter 'PC'. The float and int parameters have unknown purposes. Not yet verified.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
 

@@ -15,17 +15,12 @@ namespace DivineDragon.EngageAnimationEvents
 
         public override string Summary => backingAnimationEvent.intParameter == 1 ? "Enable Foot IK" : "Disable Foot IK";
 
-        public override string Explanation { get; } = "Controls Inverse Kinematics for foot positioning during combat animations. Used exclusively in Emblem character AttackC animations to ensure proper foot grounding on terrain during attacks, then released for normal movement transitions.";
+        public override string Explanation { get; } = "Controls Inverse Kinematics for foot positioning during combat animations. Used exclusively in Emblem AttackC animations.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {
             ExposedPropertyType.Int,
         };
-        
-        public override void OnScrubbedTo(AnimationEditor go, List<ParsedEngageAnimationEvent> events)
-        {
-            // no visualizations yet
-        }
 
         public override VisualElement MakeSpecialEditor(Action<ParsedEngageAnimationEvent, AnimationEvent> onSave,
             List<ParsedEngageAnimationEvent> events)
