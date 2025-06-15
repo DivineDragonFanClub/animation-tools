@@ -12,7 +12,7 @@ namespace DivineDragon.EngageAnimationEvents
 
         public override string Summary => $"Wing flap with float {backingAnimationEvent.floatParameter}.";
 
-        public override string Explanation { get; } = "Triggers a wing flapping animation or effect. The vast majority of flap calls in the game use 1.0, though there seems to be some use of 0.5. The difference (if any) is yet to be investigated.";
+        public override string Explanation { get; } = "Triggers a wing flapping effect. The vast majority of flap calls in the game use 1.0, though there seems to be some use of 0.5. The difference (if any) is yet to be investigated.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>
         {

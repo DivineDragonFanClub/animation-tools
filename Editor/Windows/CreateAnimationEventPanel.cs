@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEditor.UIElements;
 
 namespace DivineDragon.Windows
 {
@@ -27,6 +28,16 @@ namespace DivineDragon.Windows
     
     public class CreateAnimationEventPanel: AnimationEditorInspectorHelper
     {
+        private const string SearchModeKey = "CreateAnimationEventPanel_SearchMode";
+        
+        private enum SearchMode
+        {
+            All,
+            [System.ComponentModel.Description("Name Only")]
+            NameOnly
+        }
+        
+        private SearchMode searchMode = SearchMode.NameOnly;
         
         [MenuItem("Divine Dragon/Animation Tools/Event Palette")]
         public static void ShowExample()
@@ -35,16 +46,28 @@ namespace DivineDragon.Windows
             wnd.titleContent = new GUIContent("Event Palette");
         }
 
+        private void LoadPreferences()
+        {
+            searchMode = (SearchMode)EditorPrefs.GetInt(SearchModeKey, (int)SearchMode.NameOnly);
+        }
+        
+        private void SavePreferences()
+        {
+            EditorPrefs.SetInt(SearchModeKey, (int)searchMode);
+        }
+        
         public new void CreateGUI()
         {
             // Each editor window contains a root VisualElement object
             root = rootVisualElement;
+            LoadPreferences();
             CreateAnimationEventPanelUI(root);
         }
          
         protected override void OnUnderlyingAnimationClipChanged()
         {
             root.Clear();
+            LoadPreferences();
             CreateAnimationEventPanelUI(root);
         }
 
@@ -67,31 +90,52 @@ namespace DivineDragon.Windows
                     {
                         var lowerSearchTerm = searchTerm.ToLower();
                         
-                        // Check display name
-                        if (e.sampleParsedEvent.displayName.ToLower().Contains(lowerSearchTerm))
-                            return true;
-                            
-                        // Check explanation/tooltip
-                        if (!string.IsNullOrEmpty(e.sampleParsedEvent.Explanation) && 
-                            e.sampleParsedEvent.Explanation.ToLower().Contains(lowerSearchTerm))
-                            return true;
-                            
-                        // Check category description
-                        var categoryDescription = e.sampleParsedEvent.category.GetDescription();
-                        if (!string.IsNullOrEmpty(categoryDescription) && 
-                            categoryDescription.ToLower().Contains(lowerSearchTerm))
-                            return true;
-                            
-                        // Check Japanese names from match rules
-                        foreach (var rule in e.matchRules)
+                        if (searchMode == SearchMode.NameOnly)
                         {
-                            if (rule is FunctionNameMatchRule fnRule && fnRule.functionName.Contains(searchTerm))
+                            // Only search in display name and Japanese names
+                            // Check display name
+                            if (e.sampleParsedEvent.displayName.ToLower().Contains(lowerSearchTerm))
                                 return true;
-                            if (rule is FunctionNameStringParameterMatchRule fnsRule && fnsRule.stringParameter.Contains(searchTerm))
-                                return true;
+                                
+                            // Check Japanese names from match rules
+                            foreach (var rule in e.matchRules)
+                            {
+                                if (rule is FunctionNameMatchRule fnRule && fnRule.functionName.Contains(searchTerm))
+                                    return true;
+                                if (rule is FunctionNameStringParameterMatchRule fnsRule && fnsRule.stringParameter.Contains(searchTerm))
+                                    return true;
+                            }
+                            
+                            return false;
                         }
-                        
-                        return false;
+                        else // SearchMode.All
+                        {
+                            // Check display name
+                            if (e.sampleParsedEvent.displayName.ToLower().Contains(lowerSearchTerm))
+                                return true;
+                                
+                            // Check explanation/tooltip
+                            if (!string.IsNullOrEmpty(e.sampleParsedEvent.Explanation) && 
+                                e.sampleParsedEvent.Explanation.ToLower().Contains(lowerSearchTerm))
+                                return true;
+                                
+                            // Check category description
+                            var categoryDescription = e.sampleParsedEvent.category.GetDescription();
+                            if (!string.IsNullOrEmpty(categoryDescription) && 
+                                categoryDescription.ToLower().Contains(lowerSearchTerm))
+                                return true;
+                                
+                            // Check Japanese names from match rules
+                            foreach (var rule in e.matchRules)
+                            {
+                                if (rule is FunctionNameMatchRule fnRule && fnRule.functionName.Contains(searchTerm))
+                                    return true;
+                                if (rule is FunctionNameStringParameterMatchRule fnsRule && fnsRule.stringParameter.Contains(searchTerm))
+                                    return true;
+                            }
+                            
+                            return false;
+                        }
                     }).ToList();
                 }
                 
@@ -227,6 +271,23 @@ namespace DivineDragon.Windows
             
             searchContainer.Add(clearButton);
             
+            // Add search mode dropdown
+            var searchModeDropdown = new EnumField(searchMode);
+            searchModeDropdown.style.width = 100;
+            searchModeDropdown.style.height = 20;
+            searchModeDropdown.style.marginLeft = 5;
+            searchModeDropdown.tooltip = "Search mode:\n" +
+                "• All - Searches in event names (English & Japanese), explanations, and categories\n" +
+                "• Name Only - Searches only in event display names (English) and original names (Japanese)";
+            searchModeDropdown.RegisterValueChangedCallback(evt =>
+            {
+                searchMode = (SearchMode)evt.newValue;
+                SavePreferences();
+                // Re-filter with current search term
+                RebuildEventList(searchField.value);
+            });
+            searchContainer.Add(searchModeDropdown);
+            
             // Set up search functionality
             searchField.RegisterValueChangedCallback(evt =>
             {
@@ -238,8 +299,27 @@ namespace DivineDragon.Windows
             // Initial build
             RebuildEventList("");
             
-            myInspector.Add(searchContainer);
-            myInspector.Add(scrollable);
+            // Create a container with proper layout
+            var mainContainer = new VisualElement()
+            {
+                style =
+                {
+                    flexGrow = 1,
+                    flexDirection = FlexDirection.Column
+                }
+            };
+            
+            // Add search container with fixed positioning
+            searchContainer.style.marginLeft = 5;
+            searchContainer.style.marginRight = 5;
+            mainContainer.Add(searchContainer);
+            
+            // Add scrollable with proper margins to prevent overlap
+            scrollable.style.flexGrow = 1;
+            scrollable.style.marginTop = 5;
+            mainContainer.Add(scrollable);
+            
+            myInspector.Add(mainContainer);
         }
         
         private void addAnimationEvent(AnimationClip currentClip, float time, string animType)

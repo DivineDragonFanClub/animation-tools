@@ -5,15 +5,15 @@ using UnityEngine;
 
 namespace DivineDragon.EngageAnimationEvents
 {
-    public class WeaponTrailEnd : ParsedEngageAnimationEvent
+    public class AfterimageEnd : ParsedEngageAnimationEvent
     {
-        public override string displayName => "Weapon Trail End";
+        public override string displayName => "Afterimage End";
 
-        public override EventCategory category => EventCategory.WeaponControl;
+        public override EventCategory category => EventCategory.MotionControl;
 
-        public override string Summary { get; } = "End right hand weapon trail.";
+        public override string Summary { get; } = "End afterimage effect.";
 
-        public override string Explanation { get; } = "Marks the end of the right hand weapon trail rendering that started with Weapon Trail Begin.";
+        public override string Explanation { get; } = "Marks the end of an afterimage effect.";
 
         public override HashSet<ExposedPropertyType> exposedProperties => new HashSet<ExposedPropertyType>();
 
@@ -25,29 +25,29 @@ namespace DivineDragon.EngageAnimationEvents
             if (c_neck_jnt != null)
             {
                 GUIStyle style = new GUIStyle();
-                style.normal.textColor = Color.red;
+                style.normal.textColor = Color.cyan;
                 style.fontSize = 20;
-                string labelText = "Weapon Trail End";
+                string labelText = "Afterimage End";
                 Handles.Label(c_neck_jnt.position, labelText, style);
             }
         }
     }
 
 
-    public class WeaponTrailEndParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
+    public class AfterimageEndParser : EngageAnimationEventParser<ParsedEngageAnimationEvent>
     {
         public override MatchRule[] matchRules => new MatchRule[]
         {
-            new FunctionNameMatchRule("武器軌跡終")
+            new FunctionNameMatchRule("残像終")
         };
 
         public override ParsedEngageAnimationEvent ParseFrom(AnimationEvent animEvent)
         {
-            WeaponTrailEnd weaponTrailEnd = new WeaponTrailEnd
+            AfterimageEnd afterimageEnd = new AfterimageEnd
             {
                 backingAnimationEvent = animEvent
             };
-            return weaponTrailEnd;
+            return afterimageEnd;
         }
     }
 }

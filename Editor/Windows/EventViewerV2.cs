@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using DivineDragon.EngageAnimationEvents;
 using Object = UnityEngine.Object;
 
 namespace DivineDragon.Windows
@@ -15,6 +16,14 @@ namespace DivineDragon.Windows
         private const string ScrubToEventKey = "EventViewerV2_ScrubToEvent";
         private const string ShowDifferentialTimestampKey = "EventViewerV2_ShowDifferentialTimestamp";
         private const string DeveloperModeKey = "EventViewerV2_DeveloperMode";
+        private const string SearchModeKey = "EventViewerV2_SearchMode";
+        
+        private enum SearchMode
+        {
+            All,
+            [System.ComponentModel.Description("Name Only")]
+            NameOnly
+        }
 
         [MenuItem("Divine Dragon/Animation Tools/Event Viewer")]
         public static void ShowExample()
@@ -34,6 +43,10 @@ namespace DivineDragon.Windows
             float closestTime = float.MaxValue;
             // loop through all the events
             int closestIndex = -1;
+            if (listView == null || listView.itemsSource == null)
+            {
+                return;
+            }
             foreach (var item in listView.itemsSource)
             {
                 if (item is ParsedEngageAnimationEvent parsedEvent)
@@ -80,6 +93,7 @@ namespace DivineDragon.Windows
         private bool scrubToEvent = true;
         private bool showDifferentialTimestamp = false;
         private bool developerMode = false;
+        private SearchMode searchMode = SearchMode.All;
 
         private void UpdateButtonToggleState(Button button, bool isActive, string textPrefix)
         {
@@ -93,6 +107,7 @@ namespace DivineDragon.Windows
             scrubToEvent = EditorPrefs.GetBool(ScrubToEventKey, true);
             showDifferentialTimestamp = EditorPrefs.GetBool(ShowDifferentialTimestampKey, false);
             developerMode = EditorPrefs.GetBool(DeveloperModeKey, false);
+            searchMode = (SearchMode)EditorPrefs.GetInt(SearchModeKey, (int)SearchMode.All);
         }
 
         private void SavePreferences()
@@ -101,6 +116,7 @@ namespace DivineDragon.Windows
             EditorPrefs.SetBool(ScrubToEventKey, scrubToEvent);
             EditorPrefs.SetBool(ShowDifferentialTimestampKey, showDifferentialTimestamp);
             EditorPrefs.SetBool(DeveloperModeKey, developerMode);
+            EditorPrefs.SetInt(SearchModeKey, (int)searchMode);
         }
 
         protected override void OnUnderlyingAnimationClipChanged()
@@ -141,6 +157,7 @@ namespace DivineDragon.Windows
         private HelpBox noEventsHelpBox;
         private VisualElement emptyStateContainer;
         private Button emptyStatePasteButton;
+        private Button emptyStateImportButton;
         private string lastClipboardContent = "";
         
         private void FilterEventsList(string searchTerm)
@@ -159,33 +176,42 @@ namespace DivineDragon.Windows
                 var lowerSearchTerm = searchTerm.ToLower();
                 eventsToShow = allEvents.Where(evt =>
                 {
-                    // Check display name
-                    if (evt.displayName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                    if (searchMode == SearchMode.NameOnly)
+                    {
+                        // Only search in display name and original name (Japanese name)
+                        return evt.displayName.ToLower().Contains(lowerSearchTerm) ||
+                               evt.originalName.ToLower().Contains(lowerSearchTerm);
+                    }
+                    else // SearchMode.All
+                    {
+                        // Check display name
+                        if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check original name (backing function name)
-                    if (evt.originalName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check original name (backing function name)
+                        if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check function name parameter
-                    if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check function name parameter
+                        if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check string parameter
-                    if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
-                        evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check string parameter
+                        if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                            evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check summary
-                    if (!string.IsNullOrEmpty(evt.Summary) &&
-                        evt.Summary.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check summary
+                        if (!string.IsNullOrEmpty(evt.Summary) &&
+                            evt.Summary.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check time as string
-                    if (evt.backingAnimationEvent.time.ToString("F3").Contains(searchTerm))
-                        return true;
+                        // Check time as string
+                        if (evt.backingAnimationEvent.time.ToString("F3").Contains(searchTerm))
+                            return true;
 
-                    return false;
+                        return false;
+                    }
                 }).ToList();
             }
             
@@ -199,10 +225,14 @@ namespace DivineDragon.Windows
                 bool clipIsActuallyEmpty = allEvents.Count == 0;
                 emptyStateContainer.style.display = eventsToShow.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
                 
-                // Hide paste button if we're just filtering
+                // Hide paste and import buttons if we're just filtering
                 if (emptyStatePasteButton != null)
                 {
                     emptyStatePasteButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
+                }
+                if (emptyStateImportButton != null)
+                {
+                    emptyStateImportButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
                 }
             }
             
@@ -234,33 +264,42 @@ namespace DivineDragon.Windows
                     var lowerSearchTerm = currentSearchTerm.ToLower();
                     filteredEvents = latestParsedEvents.Where(evt =>
                     {
-                        // Check display name
-                        if (evt.displayName.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                        if (searchMode == SearchMode.NameOnly)
+                        {
+                            // Only search in display name and original name (Japanese name)
+                            return evt.displayName.ToLower().Contains(lowerSearchTerm) ||
+                                   evt.originalName.ToLower().Contains(lowerSearchTerm);
+                        }
+                        else // SearchMode.All
+                        {
+                            // Check display name
+                            if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check original name (backing function name)
-                        if (evt.originalName.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                            // Check original name (backing function name)
+                            if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check function name parameter
-                        if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                            // Check function name parameter
+                            if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check string parameter
-                        if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
-                            evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                            // Check string parameter
+                            if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                                evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check summary
-                        if (!string.IsNullOrEmpty(evt.Summary) &&
-                            evt.Summary.ToLower().Contains(lowerSearchTerm))
-                            return true;
+                            // Check summary
+                            if (!string.IsNullOrEmpty(evt.Summary) &&
+                                evt.Summary.ToLower().Contains(lowerSearchTerm))
+                                return true;
 
-                        // Check time as string
-                        if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
-                            return true;
+                            // Check time as string
+                            if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
+                                return true;
 
-                        return false;
+                            return false;
+                        }
                     }).ToList();
                 }
                 
@@ -276,6 +315,19 @@ namespace DivineDragon.Windows
                     if (newIndex != -1)
                     {
                         listView.ScrollToItem(newIndex);
+                        
+                        // Find the newly added event
+                        var newEvent = filteredEvents.FirstOrDefault(item => item.Uuid == newUuid);
+                        if (newEvent != null)
+                        {
+                            // Check if this is a default/empty event that needs configuration
+                            // (Unity creates events with functionName "" when added through Animation Window)
+                            if (string.IsNullOrEmpty(newEvent.backingAnimationEvent.functionName))
+                            {
+                                // Show the event search popup to configure the event type
+                                ShowAddEventSearchPopup(changedClip, newEvent.backingAnimationEvent.time, newEvent);
+                            }
+                        }
                     }
                 }
                 else if (selectedEvents.Count != 0)
@@ -292,11 +344,16 @@ namespace DivineDragon.Windows
                 {
                     emptyStateContainer.style.display = filteredEvents.Count == 0 ? DisplayStyle.Flex : DisplayStyle.None;
                     
-                    // Only show paste button if clip is actually empty
+                    // Only show paste and import buttons if clip is actually empty
                     if (emptyStatePasteButton != null)
                     {
                         bool clipIsActuallyEmpty = latestParsedEvents.Count == 0;
                         emptyStatePasteButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
+                    }
+                    if (emptyStateImportButton != null)
+                    {
+                        bool clipIsActuallyEmpty = latestParsedEvents.Count == 0;
+                        emptyStateImportButton.style.display = clipIsActuallyEmpty ? DisplayStyle.Flex : DisplayStyle.None;
                     }
                 }
                 
@@ -337,7 +394,6 @@ namespace DivineDragon.Windows
 
         public void OnDestroy()
         {
-            Debug.Log("Destroying EventViewer");
             EditorApplication.update -= handleScrollInTandem;
             EditorApplication.update -= HandleRefreshTick;
             Undo.undoRedoPerformed -= UpdateInspectorCall;
@@ -359,7 +415,10 @@ namespace DivineDragon.Windows
         {
             if (previousTime != CurrentTime)
             {
-                listView.Refresh();
+                if (listView != null)
+                {
+                    listView.Refresh();
+                }
                 previousTime = CurrentTime;
             }
             
@@ -452,6 +511,25 @@ namespace DivineDragon.Windows
             
             searchControls.Add(clearButton);
             
+            // Add search mode dropdown
+            var searchModeDropdown = new EnumField(searchMode);
+            searchModeDropdown.style.width = 100;
+            searchModeDropdown.style.marginLeft = 5;
+            searchModeDropdown.tooltip = "Search mode:\n" +
+                "• All - Searches in event names (English & Japanese), parameters, summaries, and timestamps\n" +
+                "• Name Only - Searches only in event display names (English) and original names (Japanese)";
+            searchModeDropdown.RegisterValueChangedCallback(evt =>
+            {
+                searchMode = (SearchMode)evt.newValue;
+                SavePreferences();
+                // Re-filter with current search term
+                if (!string.IsNullOrEmpty(currentSearchTerm))
+                {
+                    FilterEventsList(currentSearchTerm);
+                }
+            });
+            searchControls.Add(searchModeDropdown);
+            
             // Set up search field callback
             searchField.value = currentSearchTerm;
             searchField.RegisterValueChangedCallback(evt =>
@@ -527,6 +605,10 @@ namespace DivineDragon.Windows
 
             // Get events - apply current search filter if any
             var allEvents = AnimationClipWatcher.GetParsedEvents(currentClip);
+            if (allEvents == null)
+            {
+                return;
+            }
             var eventsToShow = allEvents;
             
             if (!string.IsNullOrEmpty(currentSearchTerm))
@@ -534,33 +616,42 @@ namespace DivineDragon.Windows
                 var lowerSearchTerm = currentSearchTerm.ToLower();
                 eventsToShow = allEvents.Where(evt =>
                 {
-                    // Check display name
-                    if (evt.displayName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                    if (searchMode == SearchMode.NameOnly)
+                    {
+                        // Only search in display name and original name (Japanese name)
+                        return evt.displayName.ToLower().Contains(lowerSearchTerm) ||
+                               evt.originalName.ToLower().Contains(lowerSearchTerm);
+                    }
+                    else // SearchMode.All
+                    {
+                        // Check display name
+                        if (evt.displayName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check original name (backing function name)
-                    if (evt.originalName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check original name (backing function name)
+                        if (evt.originalName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check function name parameter
-                    if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check function name parameter
+                        if (evt.backingAnimationEvent.functionName.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check string parameter
-                    if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
-                        evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check string parameter
+                        if (!string.IsNullOrEmpty(evt.backingAnimationEvent.stringParameter) &&
+                            evt.backingAnimationEvent.stringParameter.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check summary
-                    if (!string.IsNullOrEmpty(evt.Summary) &&
-                        evt.Summary.ToLower().Contains(lowerSearchTerm))
-                        return true;
+                        // Check summary
+                        if (!string.IsNullOrEmpty(evt.Summary) &&
+                            evt.Summary.ToLower().Contains(lowerSearchTerm))
+                            return true;
 
-                    // Check time as string
-                    if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
-                        return true;
+                        // Check time as string
+                        if (evt.backingAnimationEvent.time.ToString("F3").Contains(currentSearchTerm))
+                            return true;
 
-                    return false;
+                        return false;
+                    }
                 }).ToList();
             }
 
@@ -609,9 +700,137 @@ namespace DivineDragon.Windows
             emptyStatePasteButton.SetEnabled(CanPasteEvent());
             emptyStateContainer.Add(emptyStatePasteButton);
             
+            // Add import button
+            emptyStateImportButton = new Button(() =>
+            {
+                ShowImportEventsWindow();
+            })
+            {
+                text = "Import Events from Another Clip",
+                style =
+                {
+                    marginTop = 10,
+                    marginLeft = 10,
+                    marginRight = 10,
+                    height = 30
+                }
+            };
+            emptyStateContainer.Add(emptyStateImportButton);
 
             operationsPanel = new VisualElement();
             operationsPanel.style.flexDirection = FlexDirection.Column;
+
+            // Add right-click context menu to the list view
+            listView.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                // Capture the mouse position when the context menu is opened
+                Vector2 mousePosition = evt.mousePosition;
+                
+                // Add new event - only show if 0 or 1 event is selected
+                if (selectedEvents.Count <= 1)
+                {
+                    float targetTime = editor.time;
+                    if (selectedEvents.Count == 1)
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var firstSelectedEvent = events.FirstOrDefault(item => item.Uuid == selectedEvents[0]);
+                        if (firstSelectedEvent != null)
+                        {
+                            targetTime = firstSelectedEvent.backingAnimationEvent.time;
+                        }
+                    }
+                    
+                    evt.menu.AppendAction($"Add new event here ({targetTime:F2}s)", (a) =>
+                    {
+                        ShowAddEventSearchPopup(currentClip, targetTime, null, mousePosition);
+                    });
+                }
+                
+                evt.menu.AppendSeparator("");
+                
+                // Copy functionality
+                if (selectedEvents.Count == 1)
+                {
+                    evt.menu.AppendAction("Copy Event", (a) =>
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var eventToCopy = events.FirstOrDefault(e => e.Uuid == selectedEvents[0]);
+                        if (eventToCopy != null)
+                        {
+                            CopyEventToClipboard(eventToCopy);
+                        }
+                    });
+                }
+                else if (selectedEvents.Count > 1)
+                {
+                    evt.menu.AppendAction($"Copy {selectedEvents.Count} Events", (a) =>
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var selectedItems = selectedEvents
+                            .Select(uuid => events.FirstOrDefault(e => e.Uuid == uuid))
+                            .Where(e => e != null)
+                            .ToList();
+                        CopyMultipleEventsToClipboard(selectedItems);
+                    });
+                }
+                
+                // Paste events
+                evt.menu.AppendAction("Paste Events", (a) =>
+                {
+                    var clipData = EditorGUIUtility.systemCopyBuffer;
+                    var eventList = JsonUtility.FromJson<SerializableAnimationEventList>(clipData);
+                    if (eventList != null && eventList.events != null)
+                    {
+                        var eventsToPaste = eventList.events.Select(e => e.ToAnimationEvent()).ToList();
+                        foreach (var animEvent in eventsToPaste)
+                        {
+                            AnimationClipWatcher.AddEventProgrammatically(currentClip, animEvent, "Paste Events");
+                        }
+                    }
+                }, (a) => CanPasteEvent() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                
+                evt.menu.AppendSeparator("");
+                
+                // Duplicate option for single selection
+                if (selectedEvents.Count == 1)
+                {
+                    evt.menu.AppendAction("Duplicate Event", (a) =>
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var eventToDuplicate = events.FirstOrDefault(e => e.Uuid == selectedEvents[0]);
+                        if (eventToDuplicate != null)
+                        {
+                            DuplicateEvent(eventToDuplicate);
+                        }
+                    });
+                }
+                
+                // Delete functionality
+                if (selectedEvents.Count == 1)
+                {
+                    evt.menu.AppendAction("Delete Event", (a) =>
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var eventToDelete = events.FirstOrDefault(e => e.Uuid == selectedEvents[0]);
+                        if (eventToDelete != null)
+                        {
+                            DeleteAnimationEvent(currentClip, eventToDelete);
+                        }
+                    });
+                }
+                else if (selectedEvents.Count > 1)
+                {
+                    evt.menu.AppendAction($"Delete {selectedEvents.Count} Events", (a) =>
+                    {
+                        var events = AnimationClipWatcher.GetParsedEvents(currentClip);
+                        var selectedEventItems = selectedEvents
+                            .Select(uuid => events.FirstOrDefault(item => item.Uuid == uuid))
+                            .Where(item => item != null)
+                            .ToList();
+                        DeleteMultipleAnimationEvents(currentClip, selectedEventItems);
+                    });
+                }
+            }));
 
             // Handle selection changes
             listView.onSelectionChange += objects =>
@@ -1067,11 +1286,27 @@ namespace DivineDragon.Windows
             headerContainer.style.paddingBottom = 7;
             headerContainer.style.flexDirection = FlexDirection.Row;
 
-            // Labels
+            // Create a container that will hold either the label or highlighted content
+            var nameLabelContainer = new VisualElement();
+            nameLabelContainer.name = "name-label-container";
+            nameLabelContainer.style.flexGrow = 0;
+            nameLabelContainer.style.flexShrink = 1;
+            nameLabelContainer.style.height = 14;
+            
+            // Regular label (shown when not searching)
             var nameLabel = new Label();
             nameLabel.name = "name-label";
             nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             nameLabel.style.color = new StyleColor(Color.white);
+            nameLabelContainer.Add(nameLabel);
+            
+            // Highlighted container (shown when searching)
+            var nameHighlightContainer = new VisualElement();
+            nameHighlightContainer.name = "name-highlight";
+            nameHighlightContainer.style.flexDirection = FlexDirection.Row;
+            nameHighlightContainer.style.alignItems = Align.Center;
+            nameHighlightContainer.style.display = DisplayStyle.None;
+            nameLabelContainer.Add(nameHighlightContainer);
 
             var backingNameLabel = new Label();
             backingNameLabel.name = "backing-name-label";
@@ -1091,7 +1326,7 @@ namespace DivineDragon.Windows
             timeLabel.name = "time-label";
 
             // Add labels to header
-            headerContainer.Add(nameLabel);
+            headerContainer.Add(nameLabelContainer);
             headerContainer.Add(backingNameLabel);
             headerContainer.Add(timeLabel);
             var timeIndicator = new Label();
@@ -1102,13 +1337,34 @@ namespace DivineDragon.Windows
 
             itemContainer.Add(headerContainer);
 
+            // Create a container for summary that can hold both regular and highlighted versions
+            var summaryWrapper = new VisualElement();
+            summaryWrapper.name = "summary-wrapper";
+            summaryWrapper.style.minHeight = 16;
+            summaryWrapper.style.paddingTop = 2;
+            
+            // Regular summary label
             var summaryContainer = new Label();
             summaryContainer.name = "summary-container";
             summaryContainer.style.unityFont = EditorStyles.miniFont;
-            summaryContainer.style.paddingTop = 5;
-            itemContainer.Add(summaryContainer);
+            summaryContainer.style.whiteSpace = WhiteSpace.NoWrap;
+            summaryContainer.style.overflow = Overflow.Hidden;
+            summaryContainer.style.textOverflow = TextOverflow.Ellipsis;
+            summaryContainer.style.flexGrow = 1;
+            summaryWrapper.Add(summaryContainer);
+            
+            // Highlighted summary container
+            var summaryHighlightContainer = new VisualElement();
+            summaryHighlightContainer.name = "summary-highlight";
+            summaryHighlightContainer.style.flexDirection = FlexDirection.Row;
+            summaryHighlightContainer.style.whiteSpace = WhiteSpace.NoWrap;
+            summaryHighlightContainer.style.overflow = Overflow.Hidden;
+            summaryHighlightContainer.style.display = DisplayStyle.None;
+            summaryWrapper.Add(summaryHighlightContainer);
+            
+            itemContainer.Add(summaryWrapper);
 
-            itemContainer.AddManipulator(new ContextualMenuManipulator(BuildContextMenu));
+            // Context menu is handled at the list level
 
             return itemContainer;
         }
@@ -1219,6 +1475,7 @@ namespace DivineDragon.Windows
         {
             public float time;
             public string functionName;
+            public string displayName; // Added for reference only, not used when pasting
             public float floatParameter;
             public int intParameter;
             public string stringParameter;
@@ -1242,6 +1499,13 @@ namespace DivineDragon.Windows
                     result.objectReferenceType = evt.objectReferenceParameter.GetType().AssemblyQualifiedName;
                 }
 
+                return result;
+            }
+            
+            public static SerializableAnimationEvent FromParsedEvent(ParsedEngageAnimationEvent parsedEvt)
+            {
+                var result = FromAnimationEvent(parsedEvt.backingAnimationEvent);
+                result.displayName = parsedEvt.displayName;
                 return result;
             }
 
@@ -1316,7 +1580,6 @@ namespace DivineDragon.Windows
 
                     // Update the event
                     AnimationClipWatcher.ReplaceEventProgrammatically(getAttachedClip(), targetEvent, clone, "Paste Event Data");
-                    Debug.Log("Pasted event data successfully");
                 }
             }
             catch (Exception ex)
@@ -1336,10 +1599,9 @@ namespace DivineDragon.Windows
 
         private void CopyMultipleEventsToClipboard(List<ParsedEngageAnimationEvent> events)
         {
-            var serializedEvents = events.Select(evt => SerializableAnimationEvent.FromAnimationEvent(evt.backingAnimationEvent)).ToList();
+            var serializedEvents = events.Select(evt => SerializableAnimationEvent.FromParsedEvent(evt)).ToList();
             var data = JsonUtility.ToJson(new SerializableAnimationEventList { events = serializedEvents }, true);
             EditorGUIUtility.systemCopyBuffer = data;
-            Debug.Log($"Copied {events.Count} events to clipboard");
         }
 
         private void PasteMultipleEventsFromClipboard(AnimationClip clip, ParsedEngageAnimationEvent referenceEvent)
@@ -1370,12 +1632,11 @@ namespace DivineDragon.Windows
                         AnimationClipWatcher.AddEventProgrammatically(clip, clone, "Paste Events");
                     }
 
-                    Debug.Log($"Pasted {eventsToPaste.Count} event{(eventsToPaste.Count > 1 ? "s" : "")}");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to paste events: {ex.Message}");
+                Debug.LogError($"Failed to paste multiple events: {ex.Message}");
             }
         }
 
@@ -1419,7 +1680,38 @@ namespace DivineDragon.Windows
 
             // Bind data to UI elements
             var headerContainer = element.Q("header-container");
-            headerContainer.Q<Label>("name-label").text = item.displayName;
+            var nameLabelContainer = headerContainer.Q("name-label-container");
+            var nameLabel = nameLabelContainer.Q<Label>("name-label");
+            var nameHighlightContainer = nameLabelContainer.Q("name-highlight");
+            
+            // Apply highlighting if search is active
+            if (!string.IsNullOrEmpty(currentSearchTerm))
+            {
+                // Hide regular label, show highlight container
+                nameLabel.style.display = DisplayStyle.None;
+                nameHighlightContainer.style.display = DisplayStyle.Flex;
+                
+                // Clear and recreate highlighted text
+                nameHighlightContainer.Clear();
+                TextHighlightUtility.CreateHighlightedText(nameHighlightContainer, item.displayName, currentSearchTerm);
+                
+                // Apply bold style to all child labels
+                foreach (var child in nameHighlightContainer.Children())
+                {
+                    if (child is Label label)
+                    {
+                        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+                        label.style.color = new StyleColor(Color.white);
+                    }
+                }
+            }
+            else
+            {
+                // Show regular label, hide highlight container
+                nameLabel.style.display = DisplayStyle.Flex;
+                nameHighlightContainer.style.display = DisplayStyle.None;
+                nameLabel.text = item.displayName;
+            }
             var backingNameLabel = headerContainer.Q<Label>("backing-name-label");
             backingNameLabel.text = item.originalName;
             backingNameLabel.style.display = developerMode ? DisplayStyle.Flex : DisplayStyle.None;
@@ -1464,8 +1756,37 @@ namespace DivineDragon.Windows
             element.style.paddingLeft = 7 - width;
 
             // summary
-            var summaryContainer = element.Q<Label>("summary-container");
-            summaryContainer.text = item.Summary;
+            var summaryWrapper = element.Q("summary-wrapper");
+            var summaryContainer = summaryWrapper.Q<Label>("summary-container");
+            var summaryHighlightContainer = summaryWrapper.Q("summary-highlight");
+            
+            // Apply highlighting to summary if search is active and in All mode
+            if (!string.IsNullOrEmpty(currentSearchTerm) && searchMode == SearchMode.All && !string.IsNullOrEmpty(item.Summary))
+            {
+                // Hide regular label, show highlight container
+                summaryContainer.style.display = DisplayStyle.None;
+                summaryHighlightContainer.style.display = DisplayStyle.Flex;
+                
+                // Clear and recreate highlighted text
+                summaryHighlightContainer.Clear();
+                TextHighlightUtility.CreateHighlightedText(summaryHighlightContainer, item.Summary, currentSearchTerm);
+                
+                // Apply mini font style to all child labels
+                foreach (var child in summaryHighlightContainer.Children())
+                {
+                    if (child is Label label)
+                    {
+                        label.style.unityFont = EditorStyles.miniFont;
+                    }
+                }
+            }
+            else
+            {
+                // Show regular label, hide highlight container
+                summaryContainer.style.display = DisplayStyle.Flex;
+                summaryHighlightContainer.style.display = DisplayStyle.None;
+                summaryContainer.text = item.Summary;
+            }
         }
 
         private void DeleteAnimationEvent(AnimationClip currentClip, ParsedEngageAnimationEvent item)
@@ -1565,5 +1886,109 @@ namespace DivineDragon.Windows
                 FocusWindowIfItsOpen(animationWindowType);
             }
         }
+        
+        private void ShowImportEventsWindow()
+        {
+            var window = ScriptableObject.CreateInstance<ImportAnimationEventsWindow>();
+            window.targetEventViewer = this;
+            window.ShowUtility();
+        }
+        
+        private void ShowAddEventSearchPopup(AnimationClip clip, float time, ParsedEngageAnimationEvent eventToModify = null, Vector2? contextMenuPosition = null)
+        {
+            // Create a popup window
+            var searchWindow = ScriptableObject.CreateInstance<AddEventSearchWindow>();
+            
+            // Get mouse position - use provided position from context menu if available
+            Vector2 mousePos;
+            if (contextMenuPosition.HasValue)
+            {
+                // Convert the local position to screen position
+                mousePos = GUIUtility.GUIToScreenPoint(contextMenuPosition.Value);
+            }
+            else
+            {
+                // Fallback to current event position or default
+                mousePos = GUIUtility.GUIToScreenPoint(Event.current?.mousePosition ?? new Vector2(100, 100));
+            }
+            
+            // Make window wider to accommodate two-column layout
+            searchWindow.position = new Rect(mousePos.x, mousePos.y, 600, 400);
+            searchWindow.targetClip = clip;
+            searchWindow.targetTime = time;
+            searchWindow.eventToModify = eventToModify;
+            searchWindow.ShowUtility();
+        }
+        
+        public void ImportEventsFromClip(AnimationClip sourceClip)
+        {
+            if (sourceClip == null) return;
+            
+            var targetClip = getAttachedClip();
+            if (targetClip == null) return;
+            
+            // Get all events from the source clip
+            var sourceEvents = AnimationUtility.GetAnimationEvents(sourceClip);
+            if (sourceEvents.Length == 0)
+            {
+                // No events found in source clip
+                return;
+            }
+            
+            // Import each event
+            foreach (var evt in sourceEvents)
+            {
+                AnimationClipWatcher.AddEventProgrammatically(targetClip, evt, "Import Events");
+            }
+        }
     }
+    
+    public class ImportAnimationEventsWindow : EditorWindow
+    {
+        public EventViewerV2 targetEventViewer;
+        private AnimationClip sourceClip;
+        
+        void OnGUI()
+        {
+            titleContent = new GUIContent("Import Animation Events");
+            minSize = new Vector2(400, 150);
+            
+            EditorGUILayout.Space(10);
+            
+            EditorGUILayout.LabelField("Import Animation Events", EditorStyles.boldLabel);
+            EditorGUILayout.Space(5);
+            
+            EditorGUILayout.HelpBox("Select an animation clip to import all events to the current animation.", MessageType.Info);
+            
+            EditorGUILayout.Space(10);
+            
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Source Clip:", GUILayout.Width(80));
+            sourceClip = EditorGUILayout.ObjectField(sourceClip, typeof(AnimationClip), false) as AnimationClip;
+            EditorGUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(10);
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            GUI.enabled = sourceClip != null;
+            if (GUILayout.Button("Import Events", GUILayout.Height(30)))
+            {
+                if (targetEventViewer != null && sourceClip != null)
+                {
+                    targetEventViewer.ImportEventsFromClip(sourceClip);
+                    Close();
+                }
+            }
+            GUI.enabled = true;
+            
+            if (GUILayout.Button("Cancel", GUILayout.Height(30)))
+            {
+                Close();
+            }
+            
+            EditorGUILayout.EndHorizontal();
+        }
+    }
+    
 }

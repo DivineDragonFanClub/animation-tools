@@ -5,8 +5,15 @@ using UnityEngine.UIElements;
 
 namespace DivineDragon.Windows
 {
+    public enum HandMode
+    {
+        RightHand,
+        LeftHand
+    }
     public class PrefetchedCurveHelper: AnimationEditorInspectorHelper
     {
+        private HandMode currentHandMode = HandMode.RightHand;
+        
         [MenuItem("Divine Dragon/Animation Tools/Prefetched Curve Helper")]
         public static void ShowExample()
         {
@@ -22,6 +29,19 @@ namespace DivineDragon.Windows
 
         public void CreateCurveUI(VisualElement myInspector)
         {
+            // Bridge Configuration Section
+            var bridgeSection = new VisualElement();
+            bridgeSection.style.paddingLeft = 10;
+            bridgeSection.style.paddingRight = 10;
+            bridgeSection.style.paddingTop = 5;
+            bridgeSection.style.paddingBottom = 5;
+            
+            var bridgeSectionLabel = new Label("Bridge Configuration");
+            bridgeSectionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            bridgeSectionLabel.style.fontSize = 14;
+            bridgeSectionLabel.style.marginBottom = 10;
+            bridgeSection.Add(bridgeSectionLabel);
+            
             // Expose the prefetched curve bridge slot
             var prefetchedCurveBridge = new ObjectField("Prefetched Curve Bridge")
             {
@@ -35,7 +55,7 @@ namespace DivineDragon.Windows
                 EditorUtility.SetDirty(animationEditor);
             });
 
-            myInspector.Add(prefetchedCurveBridge);
+            bridgeSection.Add(prefetchedCurveBridge);
 
             // Try to auto-assign the PrefetchedCurve_Bridge from animation events
             bool foundBridge = false;
@@ -64,7 +84,7 @@ namespace DivineDragon.Windows
                 var warn = new HelpBox(
                     "No PrefetchedCurve_Bridge found in animation events. Click the button below to create one along with the needed animation event.",
                     HelpBoxMessageType.Warning);
-                myInspector.Add(warn);
+                bridgeSection.Add(warn);
 
                 // Only show the create button if not autodetected
                 var createBridgeAndEventButton = new Button(() =>
@@ -107,41 +127,87 @@ namespace DivineDragon.Windows
                 {
                     text = "Create PrefetchedCurve_Bridge Asset + Event"
                 };
-                myInspector.Add(createBridgeAndEventButton);
+                bridgeSection.Add(createBridgeAndEventButton);
             }
+            
+            // Add the bridge section to the inspector
+            myInspector.Add(bridgeSection);
+            
+            // Add separator after bridge section
+            var bridgeSeparator = new VisualElement();
+            bridgeSeparator.style.height = 10;
+            bridgeSeparator.style.borderBottomWidth = 1;
+            bridgeSeparator.style.borderBottomColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+            bridgeSeparator.style.marginBottom = 5;
+            bridgeSeparator.style.marginTop = 5;
+            myInspector.Add(bridgeSeparator);
 
+            // Curve Writing Section
+            var curveSection = new VisualElement();
+            curveSection.style.paddingLeft = 10;
+            curveSection.style.paddingRight = 10;
+            curveSection.style.paddingTop = 5;
+            curveSection.style.paddingBottom = 5;
+            
+            var curveSectionLabel = new Label("Trail Curve Writing");
+            curveSectionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            curveSectionLabel.style.fontSize = 14;
+            curveSectionLabel.style.marginBottom = 10;
+            curveSection.Add(curveSectionLabel);
+            
+            var handMode = new EnumField("Hand", currentHandMode);
+            handMode.RegisterValueChangedCallback(evt =>
+            {
+                // Store the new value
+                currentHandMode = (HandMode)evt.newValue;
+                // Refresh UI when mode changes
+                myInspector.Clear();
+                CreateCurveUI(myInspector);
+            });
+            curveSection.Add(handMode);
+            
+            bool isRightHand = currentHandMode == HandMode.RightHand;
+            string handName = isRightHand ? "Right" : "Left";
 
-            // Expose the RightRoot slot
-            var rightRoot = new ObjectField("Right Root")
+            // Expose the Root slot (either Right or Left based on mode)
+            var rootLabel = isRightHand ? "Right Root" : "Left Root";
+            var root = new ObjectField(rootLabel)
             {
                 objectType = typeof(Transform),
-                value = animationEditor.RightRoot
+                value = isRightHand ? animationEditor.RightRoot : animationEditor.LeftRoot
             };
 
-            rightRoot.RegisterValueChangedCallback(evt =>
+            root.RegisterValueChangedCallback(evt =>
             {
-                animationEditor.RightRoot = (Transform)evt.newValue;
+                if (isRightHand)
+                    animationEditor.RightRoot = (Transform)evt.newValue;
+                else
+                    animationEditor.LeftRoot = (Transform)evt.newValue;
                 EditorUtility.SetDirty(animationEditor);
             });
 
-            myInspector.Add(rightRoot);
+            curveSection.Add(root);
 
-            // Expose the RightTip slot
-            var rightTip = new ObjectField("Right Tip")
+            // Expose the Tip slot (either Right or Left based on mode)
+            var tipLabel = isRightHand ? "Right Tip" : "Left Tip";
+            var tip = new ObjectField(tipLabel)
             {
                 objectType = typeof(Transform),
-                value = animationEditor.RightTip
+                value = isRightHand ? animationEditor.RightTip : animationEditor.LeftTip
             };
 
-            rightTip.RegisterValueChangedCallback(evt =>
+            tip.RegisterValueChangedCallback(evt =>
             {
-                animationEditor.RightTip = (Transform)evt.newValue;
+                if (isRightHand)
+                    animationEditor.RightTip = (Transform)evt.newValue;
+                else
+                    animationEditor.LeftTip = (Transform)evt.newValue;
                 EditorUtility.SetDirty(animationEditor);
             });
 
-            myInspector.Add(rightTip);
+            curveSection.Add(tip);
 
-            // write the current position of RightRoot and RightTip into the bridge
+            // write the current position of Root and Tip into the bridge
             var writePositionButton = new Button(() =>
             {
                 if (animationEditor.bridge == null)
@@ -150,20 +216,23 @@ namespace DivineDragon.Windows
                     return;
                 }
 
-                if (animationEditor.RightRoot == null)
+                Transform currentRoot = isRightHand ? animationEditor.RightRoot : animationEditor.LeftRoot;
+                Transform currentTip = isRightHand ? animationEditor.RightTip : animationEditor.LeftTip;
+
+                if (currentRoot == null)
                 {
-                    Debug.LogError("RightRoot is null, cannot write positions");
+                    Debug.LogError($"{handName}Root is null, cannot write positions");
                     return;
                 }
 
-                if (animationEditor.RightTip == null)
+                if (currentTip == null)
                 {
-                    Debug.LogError("RightTip is null, cannot write positions");
+                    Debug.LogError($"{handName}Tip is null, cannot write positions");
                     return;
                 }
 
                 // Register undo for the bridge before modifying its curves
-                Undo.RecordObject(animationEditor.bridge, "Write RightHand Positions to PrefetchedCurve_Bridge");
+                Undo.RecordObject(animationEditor.bridge, $"Write {handName}Hand Positions to PrefetchedCurve_Bridge");
 
                 // Get the current animation clip
                 var currentClip = getAttachedClip();
@@ -174,52 +243,39 @@ namespace DivineDragon.Windows
                 var sampleCount = (int)(endTime * 90f); // Number of samples to take
                 var timeStep = endTime / (sampleCount - 1); // Time between samples
 
-                animationEditor.bridge.RightHand.RootX = new AnimationCurve();
+                // Get the appropriate TrailTrack
+                TrailTrack targetTrack = isRightHand ? animationEditor.bridge.RightHand : animationEditor.bridge.LeftHand;
 
-
-                animationEditor.bridge.RightHand.RootY = new AnimationCurve();
-
-
-                animationEditor.bridge.RightHand.RootZ = new AnimationCurve();
-
-
-                animationEditor.bridge.RightHand.TipX = new AnimationCurve();
-
-
-                animationEditor.bridge.RightHand.TipY = new AnimationCurve();
-
-
-                animationEditor.bridge.RightHand.TipZ = new AnimationCurve();
+                targetTrack.RootX = new AnimationCurve();
+                targetTrack.RootY = new AnimationCurve();
+                targetTrack.RootZ = new AnimationCurve();
+                targetTrack.TipX = new AnimationCurve();
+                targetTrack.TipY = new AnimationCurve();
+                targetTrack.TipZ = new AnimationCurve();
+                
                 for (float time = startTime; time <= endTime; time += timeStep)
                 {
                     // Sample the animation at this time
                     currentClip.SampleAnimation(animationEditor.gameObject, time);
 
-
                     // Add keyframe for this time
-                    animationEditor.bridge.RightHand.RootX.AddKey(new Keyframe(time,
-                        animationEditor.RightRoot.position.x));
-                    animationEditor.bridge.RightHand.RootY.AddKey(new Keyframe(time,
-                        animationEditor.RightRoot.position.y));
-                    animationEditor.bridge.RightHand.RootZ.AddKey(new Keyframe(time,
-                        animationEditor.RightRoot.position.z));
-                    animationEditor.bridge.RightHand.TipX.AddKey(
-                        new Keyframe(time, animationEditor.RightTip.position.x));
-                    animationEditor.bridge.RightHand.TipY.AddKey(
-                        new Keyframe(time, animationEditor.RightTip.position.y));
-                    animationEditor.bridge.RightHand.TipZ.AddKey(
-                        new Keyframe(time, animationEditor.RightTip.position.z));
+                    targetTrack.RootX.AddKey(new Keyframe(time, currentRoot.position.x));
+                    targetTrack.RootY.AddKey(new Keyframe(time, currentRoot.position.y));
+                    targetTrack.RootZ.AddKey(new Keyframe(time, currentRoot.position.z));
+                    targetTrack.TipX.AddKey(new Keyframe(time, currentTip.position.x));
+                    targetTrack.TipY.AddKey(new Keyframe(time, currentTip.position.y));
+                    targetTrack.TipZ.AddKey(new Keyframe(time, currentTip.position.z));
                 }
 
                 // smooth all tangents
-                for (int i = 0; i < animationEditor.bridge.RightHand.RootX.length; i++)
+                for (int i = 0; i < targetTrack.RootX.length; i++)
                 {
-                    animationEditor.bridge.RightHand.RootX.SmoothTangents(i, 0);
-                    animationEditor.bridge.RightHand.RootY.SmoothTangents(i, 0);
-                    animationEditor.bridge.RightHand.RootZ.SmoothTangents(i, 0);
-                    animationEditor.bridge.RightHand.TipX.SmoothTangents(i, 0);
-                    animationEditor.bridge.RightHand.TipY.SmoothTangents(i, 0);
-                    animationEditor.bridge.RightHand.TipZ.SmoothTangents(i, 0);
+                    targetTrack.RootX.SmoothTangents(i, 0);
+                    targetTrack.RootY.SmoothTangents(i, 0);
+                    targetTrack.RootZ.SmoothTangents(i, 0);
+                    targetTrack.TipX.SmoothTangents(i, 0);
+                    targetTrack.TipY.SmoothTangents(i, 0);
+                    targetTrack.TipZ.SmoothTangents(i, 0);
                 }
 
                 // Restore to current time
@@ -227,16 +283,35 @@ namespace DivineDragon.Windows
                 EditorUtility.SetDirty(animationEditor.bridge);
             })
             {
-                text = "Write Positions to PrefetchedCurve_Bridge",
-                tooltip = "Steps through the animation and writes the positions of RightRoot and RightTip to the PrefetchedCurve_Bridge."
+                text = $"Write {handName} Hand Positions to PrefetchedCurve_Bridge",
+                tooltip = $"Steps through the animation and writes the positions of {handName}Root and {handName}Tip to the PrefetchedCurve_Bridge."
             };
-            myInspector.Add(writePositionButton);
+            curveSection.Add(writePositionButton);
+            
+            // Add the curve section to the inspector
+            myInspector.Add(curveSection);
 
-            // Notify the user this only works for the right hand
-            var label = new HelpBox(
-                "This currently only works for writing to the RightHand TrailTracks.",
-                HelpBoxMessageType.Info);
-            myInspector.Add(label);
+            // Add visual separator
+            var separator = new VisualElement();
+            separator.style.height = 10;
+            separator.style.borderBottomWidth = 1;
+            separator.style.borderBottomColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+            separator.style.marginBottom = 5;
+            separator.style.marginTop = 5;
+            myInspector.Add(separator);
+
+            // Weapon Assignment Section
+            var weaponSection = new VisualElement();
+            weaponSection.style.paddingLeft = 10;
+            weaponSection.style.paddingRight = 10;
+            weaponSection.style.paddingTop = 5;
+            weaponSection.style.paddingBottom = 5;
+            
+            var weaponSectionLabel = new Label("Weapon Assignment");
+            weaponSectionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            weaponSectionLabel.style.fontSize = 14;
+            weaponSectionLabel.style.marginBottom = 10;
+            weaponSection.Add(weaponSectionLabel);
 
             // Add a field to drop in a weapon GameObject
             GameObject weaponObject = null;
@@ -249,16 +324,17 @@ namespace DivineDragon.Windows
             {
                 weaponObject = evt.newValue as GameObject;
             });
-            myInspector.Add(weaponField);
+            weaponSection.Add(weaponField);
 
             // Add a label to inform the user to drop in a weapon
             var label2 = new HelpBox(
-                "Drop in a weapon GameObject, then click the button below to attach it to the character and automatically set the Right Root and Right Tip.",
+                $"Drop in a weapon GameObject, then click the button below to attach it to the character and automatically set the {handName} Root and Tip.",
                 HelpBoxMessageType.Info);
 
-            myInspector.Add(label2);
+            weaponSection.Add(label2);
 
             // Add a button to attach and set weapon
+            string wpnLocName = isRightHand ? "r_wpn1_loc" : "l_wpn1_loc";
             var attachAndSetWeaponButton = new Button(() =>
             {
                 var go = animationEditor?.gameObject;
@@ -282,16 +358,17 @@ namespace DivineDragon.Windows
                     }
                     return null;
                 }
-                var rWpn1Loc = FindChildRecursive(go.transform, "r_wpn1_loc");
-                if (rWpn1Loc == null)
+                
+                var wpn1Loc = FindChildRecursive(go.transform, wpnLocName);
+                if (wpn1Loc == null)
                 {
-                    Debug.LogError("Could not find 'r_wpn1_loc' transform");
+                    Debug.LogError($"Could not find '{wpnLocName}' transform");
                     return;
                 }
-                // Attach weapon to r_wpn1_loc if not already parented
-                if (weaponObject.transform.parent != rWpn1Loc)
+                // Attach weapon to wpn1_loc if not already parented
+                if (weaponObject.transform.parent != wpn1Loc)
                 {
-                    Undo.SetTransformParent(weaponObject.transform, rWpn1Loc, "Attach Weapon to r_wpn1_loc");
+                    Undo.SetTransformParent(weaponObject.transform, wpn1Loc, $"Attach Weapon to {wpnLocName}");
                     weaponObject.transform.localPosition = Vector3.zero;
                     weaponObject.transform.localRotation = Quaternion.identity;
                 }
@@ -303,19 +380,46 @@ namespace DivineDragon.Windows
                     Debug.LogError("Weapon must have children named 'TrailRoot' and 'TrailTip'");
                     return;
                 }
-                Undo.RecordObject(animationEditor, "Assign RightRoot and RightTip");
-                animationEditor.RightRoot = trailRoot;
-                animationEditor.RightTip = trailTip;
+                Undo.RecordObject(animationEditor, $"Assign {handName}Root and {handName}Tip");
+                if (isRightHand)
+                {
+                    animationEditor.RightRoot = trailRoot;
+                    animationEditor.RightTip = trailTip;
+                }
+                else
+                {
+                    animationEditor.LeftRoot = trailRoot;
+                    animationEditor.LeftTip = trailTip;
+                }
                 EditorUtility.SetDirty(animationEditor);
-                rightRoot.value = trailRoot;
-                rightTip.value = trailTip;
-                Debug.Log("Weapon attached and TrailRoot/TrailTip assigned.");
+                root.value = trailRoot;
+                tip.value = trailTip;
+                Debug.Log($"Weapon attached to {wpnLocName} and TrailRoot/TrailTip assigned.");
             })
             {
-                text = "Attach Weapon and Set Right Root/Tip",
-                tooltip = "Attach the weapon to r_wpn1_loc and assign TrailRoot/TrailTip."
+                text = $"Attach Weapon and Set {handName} Root/Tip",
+                tooltip = $"Attach the weapon to {wpnLocName} and assign TrailRoot/TrailTip."
             };
-            myInspector.Add(attachAndSetWeaponButton);
+            weaponSection.Add(attachAndSetWeaponButton);
+            
+            // Add the weapon section to the inspector
+            myInspector.Add(weaponSection);
+            
+            // Add separator before refresh
+            var refreshSeparator = new VisualElement();
+            refreshSeparator.style.height = 10;
+            refreshSeparator.style.borderBottomWidth = 1;
+            refreshSeparator.style.borderBottomColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+            refreshSeparator.style.marginBottom = 5;
+            refreshSeparator.style.marginTop = 5;
+            myInspector.Add(refreshSeparator);
+            
+            // Refresh Section
+            var refreshSection = new VisualElement();
+            refreshSection.style.paddingLeft = 10;
+            refreshSection.style.paddingRight = 10;
+            refreshSection.style.paddingTop = 5;
+            refreshSection.style.paddingBottom = 10;
             
             // Add a refresh button to re-run the bridge auto-detection logic
             var refreshButton = new Button(() =>
@@ -324,9 +428,13 @@ namespace DivineDragon.Windows
                 CreateCurveUI(myInspector);
             })
             {
-                text = "Refresh Panel"
+                text = "Refresh Panel",
+                tooltip = "Re-detect PrefetchedCurve_Bridge and refresh all UI elements"
             };
-            myInspector.Add(refreshButton);
+            refreshButton.style.height = 30;
+            refreshSection.Add(refreshButton);
+            
+            myInspector.Add(refreshSection);
         }
     }
 }
