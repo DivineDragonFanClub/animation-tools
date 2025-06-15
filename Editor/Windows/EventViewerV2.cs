@@ -1896,6 +1896,14 @@ namespace DivineDragon.Windows
         
         private void ShowAddEventSearchPopup(AnimationClip clip, float time, ParsedEngageAnimationEvent eventToModify = null, Vector2? contextMenuPosition = null)
         {
+            // Check if an AddEventSearchWindow is already open
+            var existingWindow = Resources.FindObjectsOfTypeAll<AddEventSearchWindow>().FirstOrDefault();
+            if (existingWindow != null)
+            {
+                // Close existing window first
+                existingWindow.Close();
+            }
+            
             // Create a popup window
             var searchWindow = ScriptableObject.CreateInstance<AddEventSearchWindow>();
             
