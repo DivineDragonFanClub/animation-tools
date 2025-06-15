@@ -1584,7 +1584,7 @@ namespace DivineDragon.Windows
             }
             catch (Exception ex)
             {
-                // Failed to paste event data
+                Debug.LogError($"Failed to paste event data: {ex.Message}");
             }
         }
 
@@ -1636,7 +1636,7 @@ namespace DivineDragon.Windows
             }
             catch (Exception ex)
             {
-                // Failed to paste events
+                Debug.LogError($"Failed to paste multiple events: {ex.Message}");
             }
         }
 
