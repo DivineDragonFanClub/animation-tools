@@ -86,11 +86,14 @@ namespace DivineDragon
             get
             {
                 AnimationEditor animationEditor = (AnimationEditor)target;
-                return animationEditor.currentTime;
+                return animationEditor?.currentTime ?? 0f;
             }
             set
             {
                 AnimationEditor animationEditor = (AnimationEditor)target;
+                if (animationEditor == null)
+                    return;
+                
                 // Without this check, the inspector will be locked into refreshing every frame
                 if (Mathf.Abs(animationEditor.currentTime - value) > Mathf.Epsilon)
                 {
