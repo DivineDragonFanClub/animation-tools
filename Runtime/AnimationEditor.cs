@@ -7,7 +7,10 @@ namespace Combat
     {
         public float tolerance = 0.01f;
         public float currentTime = 0;
-        public PrefetchedCurve_Bridge bridge;
+        // PrefetchedCurve_Bridge lives in the game's Assembly-CSharp, which this package assembly
+        // cannot reference at compile time. Hold it as a ScriptableObject and reach its data through
+        // DivineDragon.PrefetchedCurveAdapter. Existing references deserialize fine (type widening).
+        public ScriptableObject bridge;
         public Transform RightRoot;
         public Transform RightTip;
         public Transform LeftRoot;
