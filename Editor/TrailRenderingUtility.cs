@@ -80,7 +80,7 @@ namespace DivineDragon
             ParsedEngageAnimationEvent beginEvent,
             AnimationEditor go,
             List<ParsedEngageAnimationEvent> events,
-            TrailTrack trailTrack,
+            PrefetchedCurveAdapter.TrailTrackAdapter trailTrack,
             Color color,
             string endEventName)
             where TBeginEvent : ParsedEngageAnimationEvent
@@ -107,7 +107,7 @@ namespace DivineDragon
                 return;
             }
 
-            var prefetchedCurve = (PrefetchedCurve_Bridge) genericObject.backingAnimationEvent.objectReferenceParameter;
+            var prefetchedCurve = PrefetchedCurveAdapter.FromObject(genericObject.backingAnimationEvent.objectReferenceParameter);
             
             if (prefetchedCurve != null && trailTrack != null)
             {

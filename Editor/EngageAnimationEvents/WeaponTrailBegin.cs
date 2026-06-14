@@ -45,7 +45,7 @@ namespace DivineDragon.EngageAnimationEvents
                 return;
             }
 
-            var prefetchedCurve = (PrefetchedCurve_Bridge) genericObject.backingAnimationEvent.objectReferenceParameter;
+            var prefetchedCurve = PrefetchedCurveAdapter.FromObject(genericObject.backingAnimationEvent.objectReferenceParameter);
             if (prefetchedCurve != null)
             {
                 TrailRenderingUtility.RenderTrailBetweenEvents<WeaponTrailBegin, WeaponTrailEnd>(

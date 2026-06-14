@@ -45,13 +45,13 @@ namespace DivineDragon.Windows
             // Expose the prefetched curve bridge slot
             var prefetchedCurveBridge = new ObjectField("Prefetched Curve Bridge")
             {
-                objectType = typeof(PrefetchedCurve_Bridge),
+                objectType = PrefetchedCurveAdapter.BridgeType ?? typeof(ScriptableObject),
                 value = animationEditor.bridge
             };
 
             prefetchedCurveBridge.RegisterValueChangedCallback(evt =>
             {
-                animationEditor.bridge = (PrefetchedCurve_Bridge)evt.newValue;
+                animationEditor.bridge = evt.newValue as ScriptableObject;
                 EditorUtility.SetDirty(animationEditor);
             });
 
@@ -68,10 +68,10 @@ namespace DivineDragon.Windows
                     // Look for Generic Object event with string parameter "PC"
                     if (evt.displayName == "Generic Object" && evt.backingAnimationEvent.stringParameter == "PC")
                     {
-                        var obj = evt.backingAnimationEvent.objectReferenceParameter as PrefetchedCurve_Bridge;
-                        if (obj != null)
+                        var obj = evt.backingAnimationEvent.objectReferenceParameter;
+                        if (PrefetchedCurveAdapter.Is(obj))
                         {
-                            animationEditor.bridge = obj;
+                            animationEditor.bridge = (ScriptableObject)obj;
                             prefetchedCurveBridge.value = obj;
                             foundBridge = true;
                             break;
@@ -90,7 +90,13 @@ namespace DivineDragon.Windows
                 var createBridgeAndEventButton = new Button(() =>
                 {
                     // 1. Create the asset
-                    var asset = ScriptableObject.CreateInstance<PrefetchedCurve_Bridge>();
+                    var bridgeType = PrefetchedCurveAdapter.BridgeType;
+                    if (bridgeType == null)
+                    {
+                        Debug.LogError("Cannot create PrefetchedCurve_Bridge: the type was not found in the loaded game scripts (Assembly-CSharp).");
+                        return;
+                    }
+                    var asset = ScriptableObject.CreateInstance(bridgeType);
                     string guid = System.Guid.NewGuid().ToString("N").Substring(0, 8);
                     string path = $"Assets/PrefetchedCurve_Bridge_{guid}.asset";
                     path = AssetDatabase.GenerateUniqueAssetPath(path);
@@ -243,15 +249,29 @@ namespace DivineDragon.Windows
                 var sampleCount = (int)(endTime * 90f); // Number of samples to take
                 var timeStep = endTime / (sampleCount - 1); // Time between samples
 
-                // Get the appropriate TrailTrack
-                TrailTrack targetTrack = isRightHand ? animationEditor.bridge.RightHand : animationEditor.bridge.LeftHand;
+                // Get the appropriate TrailTrack via the reflection adapter
+                var bridgeAdapter = PrefetchedCurveAdapter.FromObject(animationEditor.bridge);
+                if (bridgeAdapter == null)
+                {
+                    Debug.LogError("Bridge is not a PrefetchedCurve_Bridge, cannot write positions");
+                    return;
+                }
+                var targetTrack = isRightHand ? bridgeAdapter.RightHand : bridgeAdapter.LeftHand;
 
-                targetTrack.RootX = new AnimationCurve();
-                targetTrack.RootY = new AnimationCurve();
-                targetTrack.RootZ = new AnimationCurve();
-                targetTrack.TipX = new AnimationCurve();
-                targetTrack.TipY = new AnimationCurve();
-                targetTrack.TipZ = new AnimationCurve();
+                // Build the six curves as locals. AnimationCurve is a reference type, so mutating
+                // these after assigning them to the track persists on the underlying asset.
+                var rootX = new AnimationCurve();
+                var rootY = new AnimationCurve();
+                var rootZ = new AnimationCurve();
+                var tipX = new AnimationCurve();
+                var tipY = new AnimationCurve();
+                var tipZ = new AnimationCurve();
+                targetTrack.RootX = rootX;
+                targetTrack.RootY = rootY;
+                targetTrack.RootZ = rootZ;
+                targetTrack.TipX = tipX;
+                targetTrack.TipY = tipY;
+                targetTrack.TipZ = tipZ;
                 
                 for (float time = startTime; time <= endTime; time += timeStep)
                 {
@@ -259,23 +279,23 @@ namespace DivineDragon.Windows
                     currentClip.SampleAnimation(animationEditor.gameObject, time);
 
                     // Add keyframe for this time
-                    targetTrack.RootX.AddKey(new Keyframe(time, currentRoot.position.x));
-                    targetTrack.RootY.AddKey(new Keyframe(time, currentRoot.position.y));
-                    targetTrack.RootZ.AddKey(new Keyframe(time, currentRoot.position.z));
-                    targetTrack.TipX.AddKey(new Keyframe(time, currentTip.position.x));
-                    targetTrack.TipY.AddKey(new Keyframe(time, currentTip.position.y));
-                    targetTrack.TipZ.AddKey(new Keyframe(time, currentTip.position.z));
+                    rootX.AddKey(new Keyframe(time, currentRoot.position.x));
+                    rootY.AddKey(new Keyframe(time, currentRoot.position.y));
+                    rootZ.AddKey(new Keyframe(time, currentRoot.position.z));
+                    tipX.AddKey(new Keyframe(time, currentTip.position.x));
+                    tipY.AddKey(new Keyframe(time, currentTip.position.y));
+                    tipZ.AddKey(new Keyframe(time, currentTip.position.z));
                 }
 
                 // smooth all tangents
-                for (int i = 0; i < targetTrack.RootX.length; i++)
+                for (int i = 0; i < rootX.length; i++)
                 {
-                    targetTrack.RootX.SmoothTangents(i, 0);
-                    targetTrack.RootY.SmoothTangents(i, 0);
-                    targetTrack.RootZ.SmoothTangents(i, 0);
-                    targetTrack.TipX.SmoothTangents(i, 0);
-                    targetTrack.TipY.SmoothTangents(i, 0);
-                    targetTrack.TipZ.SmoothTangents(i, 0);
+                    rootX.SmoothTangents(i, 0);
+                    rootY.SmoothTangents(i, 0);
+                    rootZ.SmoothTangents(i, 0);
+                    tipX.SmoothTangents(i, 0);
+                    tipY.SmoothTangents(i, 0);
+                    tipZ.SmoothTangents(i, 0);
                 }
 
                 // Restore to current time
